@@ -1751,7 +1751,8 @@ function render() {
   } else {
     const mod = MODULES.find(m => m.id === route);
     if (mod) {
-      const subPage = sub ? mod.subPages.find(sp => sp.id === sub) : mod.subPages[0];
+      // 晶胞板块无子页时显示「选择查看」页（用户自己选，不直接跳 NaCl）
+      const subPage = sub ? mod.subPages.find(sp => sp.id === sub) : (mod.id === 'crystal' ? null : mod.subPages[0]);
       content.innerHTML = renderModulePage(mod, subPage);
       // 初始化该页面的 3D 场景（如果有）
       initPageScene(route, subPage ? subPage.id : null);
@@ -1812,7 +1813,7 @@ function renderHome() {
 
 // ===== 模块页面渲染（通用骨架） =====
 function renderModulePage(mod, subPage) {
-  const subName = subPage ? subPage.name : mod.subPages[0].name;
+  const subName = subPage ? subPage.name : (mod.id === 'crystal' ? '选择查看' : mod.subPages[0].name);
   return `
     <div class="page-header">
       <h2>${mod.name} · ${subName}</h2>
@@ -1828,6 +1829,7 @@ function renderModuleContent(modId, subId) {
     case 'molecule':
       return renderMoleculePage(subId);
     case 'crystal':
+      if (!subId) return renderCrystalSelectPage();
       return subId === 'freebuild' ? renderCrystalFreeBuildPage() : renderCrystalPage(subId);
     case 'periodic':
       return renderPeriodicPage(subId);
@@ -2407,6 +2409,35 @@ function resetMoleculeView() {
 }
 
 // ===== 晶胞页面 =====
+function renderCrystalSelectPage() {
+  const items = [
+    { id: 'nacl', icon: '🧂', name: 'NaCl 型', desc: '面心立方 · 离子晶体 · 配位数 6' },
+    { id: 'cscl', icon: '⬜', name: 'CsCl 型', desc: '简单立方 · 离子晶体 · 配位数 8' },
+    { id: 'caf2', icon: '💎', name: 'CaF₂ 型', desc: '面心立方 · 离子晶体 · 配位数 8/4' },
+    { id: 'diamond', icon: '💠', name: '金刚石 / SiO₂', desc: '原子晶体 · 正四面体网状结构' },
+    { id: 'graphite', icon: '⬛', name: '石墨', desc: '层状混合晶体 · 层内大π键' },
+    { id: 'dryice', icon: '❄️', name: '干冰', desc: '分子晶体 · 面心立方密堆积' },
+    { id: 'metal', icon: '🔩', name: '金属晶体', desc: 'Cu 型 / Mg 型 / 简单立方' },
+    { id: 'calc', icon: '🧮', name: '晶胞计算辅助', desc: '均摊法 · 配位数 · 密度计算' },
+    { id: 'freebuild', icon: '🛠️', name: '自由搭建晶胞', desc: '任意原子 · 成键 · 超胞 · 导入分子' }
+  ];
+  return `
+    <div class="card">
+      <div class="card-title">晶胞与晶体 · 选择查看</div>
+      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">点击下方卡片进入对应晶胞的可交互 3D 视图，也可以自由搭建自己的晶胞。</p>
+      <div class="module-grid" style="margin-top:0;margin-bottom:0;">
+        ${items.map(it => `
+          <div class="module-card" onclick="navigate('crystal', '${it.id}')">
+            <div class="module-card-icon mod-crystal">${it.icon}</div>
+            <h3>${it.name}</h3>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:6px;">${it.desc}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderCrystalPage(subId) {
   const crystals = {
     nacl: { name: 'NaCl 型', type: '离子晶体', coord: 'Na⁺:6, Cl⁻:6', desc: '面心立方，Na⁺和Cl⁻交替排列，每个离子配位数为6' },
@@ -6130,7 +6161,9 @@ function initPageScene(modId, subId) {
   if (modId === 'molecule') {
     initMoleculeScene();
   } else if (modId === 'crystal') {
-    if (subId === 'freebuild') {
+    if (!subId) {
+      // 晶胞选择页：无 3D 场景，等待用户选择
+    } else if (subId === 'freebuild') {
       initCrystalFreeBuildScene();
     } else {
       initCrystalScene();
