@@ -2620,6 +2620,18 @@ function renderCrystalFreeBuildPage() {
       <div class="fb-layout">
         <div class="fb-panel">
           <div class="fb-section">
+            <div class="fb-section-title">📐 晶胞参数（晶系类型 · 首选）</div>
+            <div class="fb-tool-row" style="margin-bottom:8px;">${sysBtns}</div>
+            <div class="fb-field"><label>a 棱长</label><input type="number" id="fbParam_a" value="${FreeBuildState.a}" step="0.1" min="0.3" onchange="fbSetParam('a', this.value)"></div>
+            <div class="fb-field"><label>b 棱长</label><input type="number" id="fbParam_b" value="${FreeBuildState.b}" step="0.1" min="0.3" onchange="fbSetParam('b', this.value)"></div>
+            <div class="fb-field"><label>c 棱长</label><input type="number" id="fbParam_c" value="${FreeBuildState.c}" step="0.1" min="0.3" onchange="fbSetParam('c', this.value)"></div>
+            <div class="fb-field"><label>α 夹角</label><input type="number" id="fbParam_alpha" value="${FreeBuildState.alpha}" step="1" min="40" max="140" onchange="fbSetParam('alpha', this.value)"></div>
+            <div class="fb-field"><label>β 夹角</label><input type="number" id="fbParam_beta" value="${FreeBuildState.beta}" step="1" min="40" max="140" onchange="fbSetParam('beta', this.value)"></div>
+            <div class="fb-field"><label>γ 夹角</label><input type="number" id="fbParam_gamma" value="${FreeBuildState.gamma}" step="1" min="40" max="140" onchange="fbSetParam('gamma', this.value)"></div>
+            <div class="fb-hint">立方（a=b=c, 90°）、四方（a=b≠c）、正交（a≠b≠c）、单斜/三斜用于观察非直角晶胞形状。确定晶胞类型后再放原子。</div>
+          </div>
+
+          <div class="fb-section">
             <div class="fb-section-title">🛠 工具</div>
             <div class="fb-tool-row">
               <button class="fb-tool-btn ${FreeBuildState.tool === 'place' ? 'active' : ''}" data-tool="place" onclick="fbSetTool('place')">＋ 放置</button>
@@ -2682,7 +2694,7 @@ function renderCrystalFreeBuildPage() {
               <button class="fb-tool-btn" style="background:#eef2ff;color:#3730a3;" onclick="fbPlaceDrawMolecule(true)">放置分子(完整)</button>
               <button class="fb-tool-btn" onclick="fbPlaceDrawMolecule(false)">拆成原子放置</button>
             </div>
-            <div class="fb-hint">可多次放置同一分子；质心坐标<0或>1放晶胞外（看相邻晶胞）。分子尺寸以Å计，建议先把晶胞 a/b/c 调到 4~6 再放置，避免超出晶胞。</div>
+            <div class="fb-hint">可多次放置同一分子；质心坐标<0或>1放晶胞外（看相邻晶胞）。分子超出晶胞时自动整体缩小适配（可用「分子缩放」滑块恢复/微调）。</div>
             <div class="fb-field" style="margin-top:8px;"><label>选中分子</label><span id="fbMolSel" style="color:#4fd1c5;font-weight:600;">未选中（用「选择」工具点分子内任意原子）</span></div>
             <div class="fb-tool-row" style="margin-top:6px;">
               <button class="fb-tool-btn" onclick="fbMoveMoleculePanel()">整体平移到坐标</button>
@@ -2690,7 +2702,7 @@ function renderCrystalFreeBuildPage() {
               <button class="fb-tool-btn" onclick="fbRotateMolecule('y')">绕Y转90°</button>
               <button class="fb-tool-btn" onclick="fbRotateMolecule('x')">绕X转90°</button>
             </div>
-            <div class="fb-field" style="margin-top:6px;"><label>分子缩放</label><input type="range" id="fbMolScale" min="0.2" max="3" step="0.05" value="1" oninput="fbScaleMolecule(this.value)"><span id="fbMolScaleVal" style="min-width:36px;">1.00</span></div>
+            <div class="fb-field" style="margin-top:6px;"><label>分子缩放</label><input type="range" id="fbMolScale" min="0.05" max="3" step="0.05" value="1" oninput="fbScaleMolecule(this.value)"><span id="fbMolScaleVal" style="min-width:36px;">1.00</span></div>
             <div class="fb-hint">分子缩放=只改该分子内部原子间距与整体大小（以自身质心为中心），不动晶胞盒子、不影响其他分子、不改 a/b/c；与滚轮视图缩放、晶胞显示缩放互相独立。</div>
             <div class="fb-tool-row" style="margin-top:6px;">
               <button class="fb-tool-btn" style="background:#fef2f2;color:#b91c1c;" onclick="fbDissolveMolecule()">拆解成独立原子</button>
@@ -2709,24 +2721,6 @@ function renderCrystalFreeBuildPage() {
               <button class="fb-tool-btn" onclick="fbResetSupercell()">回到 1×1×1</button>
             </div>
             <div class="fb-hint">延展=空间复制显示（每方向 1~5）：副本原子/分子/键完全跟随原晶胞同步更新，不能单独编辑；原晶胞永远是基础单元，分数坐标不变。</div>
-          </div>
-
-          <div class="fb-section">
-            <div class="fb-section-title">📐 晶胞参数</div>
-            <div class="fb-tool-row" style="margin-bottom:8px;">${sysBtns}</div>
-            <div class="fb-field"><label>a 棱长</label><input type="number" id="fbParam_a" value="${FreeBuildState.a}" step="0.1" min="0.3" onchange="fbSetParam('a', this.value)"></div>
-            <div class="fb-field"><label>b 棱长</label><input type="number" id="fbParam_b" value="${FreeBuildState.b}" step="0.1" min="0.3" onchange="fbSetParam('b', this.value)"></div>
-            <div class="fb-field"><label>c 棱长</label><input type="number" id="fbParam_c" value="${FreeBuildState.c}" step="0.1" min="0.3" onchange="fbSetParam('c', this.value)"></div>
-            <div class="fb-field"><label>α 夹角</label><input type="number" id="fbParam_alpha" value="${FreeBuildState.alpha}" step="1" min="40" max="140" onchange="fbSetParam('alpha', this.value)"></div>
-            <div class="fb-field"><label>β 夹角</label><input type="number" id="fbParam_beta" value="${FreeBuildState.beta}" step="1" min="40" max="140" onchange="fbSetParam('beta', this.value)"></div>
-            <div class="fb-field"><label>γ 夹角</label><input type="number" id="fbParam_gamma" value="${FreeBuildState.gamma}" step="1" min="40" max="140" onchange="fbSetParam('gamma', this.value)"></div>
-            <div class="fb-hint">立方（a=b=c, 90°）、四方（a=b≠c）、正交（a≠b≠c）、单斜/三斜用于观察非直角晶胞形状。</div>
-          </div>
-
-          <div class="fb-section">
-            <div class="fb-section-title">🎯 精确坐标输入（分数坐标 0~1）</div>
-            <div class="fb-field"><label>x</label><input type="number" id="fbCoordX" value="0.5" step="0.05" min="0" max="1"><label style="min-width:20px;">y</label><input type="number" id="fbCoordY" value="0.5" step="0.05" min="0" max="1"><label style="min-width:20px;">z</label><input type="number" id="fbCoordZ" value="0.5" step="0.05" min="0" max="1"><button class="fb-tool-btn" onclick="fbAddByCoords()">添加</button></div>
-            <div class="fb-hint">以晶胞原点 (0,0,0) 为基准。例：体心 = (0.5,0.5,0.5)，面心 = (0.5,0.5,0)。</div>
           </div>
 
           <div class="fb-section">
@@ -3258,16 +3252,34 @@ function fbPlaceDrawMolecule(asMolecule) {
   const n = d.atoms.length;
   cx3 /= n; cy3 /= n; cz3 /= n;
   const targetWorld = fbFracToWorld([fx, fy, fz]);
+  // 自动适配晶胞大小：分子最大跨度 vs 晶胞最短边。
+  // 分子放得下（跨度 ≤ 晶胞短边×0.5）则不缩放（键长/键角完全不变）；
+  // 放不下才整体等比缩小（相对分子质心），避免分子溢出晶胞、与晶胞大小失调。
+  const cellV = fbCellVectors();
+  const cellMin = Math.min(
+    Math.sqrt(cellV.ax*cellV.ax + cellV.ay*cellV.ay + cellV.az*cellV.az),
+    Math.sqrt(cellV.bx*cellV.bx + cellV.by*cellV.by + cellV.bz*cellV.bz),
+    Math.sqrt(cellV.cx*cellV.cx + cellV.cy*cellV.cy + cellV.cz*cellV.cz)
+  );
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9,minZ=1e9,maxZ=-1e9;
+  d.atoms.forEach(a => { minX=Math.min(minX,a.pos[0]); maxX=Math.max(maxX,a.pos[0]); minY=Math.min(minY,a.pos[1]); maxY=Math.max(maxY,a.pos[1]); minZ=Math.min(minZ,a.pos[2]); maxZ=Math.max(maxZ,a.pos[2]); });
+  const span = Math.max(maxX-minX, maxY-minY, maxZ-minZ) || 1;
+  let autoScale = 1;
+  if (span > cellMin * 0.5) autoScale = Math.max(0.05, (cellMin * 0.5) / span);
   const atomIdMap = {};
   const atomIds = [], bondIds = [];
   d.atoms.forEach((a, i) => {
-    const wx = a.pos[0] - cx3 + targetWorld[0];
-    const wy = a.pos[1] - cy3 + targetWorld[1];
-    const wz = a.pos[2] - cz3 + targetWorld[2];
+    // 相对分子质心缩放（键长等比、质心保持目标坐标），再整体平移
+    const rx = (a.pos[0] - cx3) * autoScale;
+    const ry = (a.pos[1] - cy3) * autoScale;
+    const rz = (a.pos[2] - cz3) * autoScale;
+    const wx = rx + targetWorld[0];
+    const wy = ry + targetWorld[1];
+    const wz = rz + targetWorld[2];
     const frac = fbWorldToFrac([wx, wy, wz]);
     const prop = ATOM_PROPS[a.element] || { color: 0x888888, radius: 0.35 };
     const id = FreeBuildState.atomSeq++;
-    FreeBuildState.atoms.push({ id, x: frac[0], y: frac[1], z: frac[2], color: prop.color, radius: prop.radius, element: a.element });
+    FreeBuildState.atoms.push({ id, x: frac[0], y: frac[1], z: frac[2], color: prop.color, radius: prop.radius * autoScale, element: a.element });
     atomIdMap[i] = id;
     atomIds.push(id);
   });
@@ -3277,8 +3289,9 @@ function fbPlaceDrawMolecule(asMolecule) {
     bondIds.push(id);
   });
   if (asMolecule) {
-    FreeBuildState.molecules.push({ id: FreeBuildState.moleculeSeq++, atomIds, bondIds, scale: 1 });
+    FreeBuildState.molecules.push({ id: FreeBuildState.moleculeSeq++, atomIds, bondIds, scale: autoScale });
   }
+  if (autoScale < 1) alert('分子超出晶胞，已自动整体缩小至 ' + autoScale.toFixed(2) + '× 放入晶胞（键长等比缩放）。可用「分子缩放」滑块继续微调；想恢复原大可把晶胞 a/b/c 调大后重新放置。');
   fbRebuild(); fbRenderAtomList(); fbUpdateInfo(); fbUpdateMoleculePanel();
 }
 function fbMoveMoleculePanel() {
@@ -6748,7 +6761,7 @@ const DrawState = {
   savedStructures: [],         // 已保存的结构
   correctionInfo: null,        // 校正信息（用于弹窗）
   // v0.4 2D有机绘图模块新增
-    mode: 'freehand',            // 当前绘图模式：builder=积木拼图 / freehand=自由手绘（默认自由手绘，可直接画原子）
+    mode: 'builder',              // 当前绘图模式：builder=积木拼图（默认） / freehand=自由手绘
 
   renderMode: 'structural',    // 2D显示模式：structural=结构式 / skeletal=键线式 / condensed=结构简式
   pendingImport3D: false,      // 待导入3D标志（从2D绘图区跳转时置位）
