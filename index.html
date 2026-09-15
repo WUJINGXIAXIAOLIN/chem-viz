@@ -6,7 +6,8 @@
 <title>化学可视化 - 高中化学互动学习平台</title>
 <link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
 <!-- Three.js r147 UMD -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@rdkit/rdkit/Code/MinimalLib/dist/RDKit_minimal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 <style>
 /* ===== 全局变量与重置 ===== */
@@ -688,6 +689,16 @@ a:hover { text-decoration: underline; }
 }
 .photo-toolbar .photo-label { font-size: 12px; color: #94a3b8; }
 .photo-tip { font-size: 12px; color: #94a3b8; margin: 0 0 8px; line-height: 1.7; }
+.btn-import3d.secondary { background: linear-gradient(135deg, #1e3a5f, #0f2a47); border-color: #2d5a8e; }
+.photo3d-modal { max-width: 660px; max-height: 88vh; overflow: auto; }
+.photo3d-upload { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.photo3d-section { margin: 12px 0; }
+.photo3d-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.preset-chip {
+  padding: 5px 10px; border-radius: 16px; border: 1px solid #2d5a8e;
+  background: #16283c; color: #bfdbfe; font-size: 12px; cursor: pointer;
+}
+.preset-chip:hover { background: #1e3a5f; border-color: #63b3ed; }
 .draw-canvas-container {
   background: #1e293b;
   border-radius: var(--radius);
@@ -6758,6 +6769,8 @@ const DrawState = {
   hoverAtom: null,
   mousePos: null,              // 鼠标当前位置（用于绘制高对比指示器）
   photo: null,                 // 结构式图片底图 { img, offsetX, offsetY, width, height, opacity, show }
+  fromRDKit: false,            // 当前分子是否来自 RDKit-js（保留其精确 3D 构象坐标）
+  rdkitSMILES: '',             // 对应 SMILES
   rotationAngle: 0,
   rotationAnimId: null,
   // v0.3 新增
@@ -7822,6 +7835,202 @@ function renderOrgAnalysis() {
 }
 
 // ===== 导入3D模型查看器（2D→3D，100%保留骨架） =====
+// ===== 图片→生成3D分子（RDKit-js 化学引擎，v0.24） =====
+// OCSR 为 Java 库无法纯前端运行；改用 RDKit-js（WebAssembly）从 SMILES 生成标准 3D 构象。
+// 上传图片仅作参考展示，不做自动识别（纯前端无化学 OCR 能力）。
+const RDKIT_PRESETS = [
+  { name: '甲烷', smiles: 'C', desc: 'CH₄ 正四面体' },
+  { name: '乙烷', smiles: 'CC', desc: 'C₂H₆' },
+  { name: '丙烷', smiles: 'CCC', desc: 'C₃H₈' },
+  { name: '乙烯', smiles: 'C=C', desc: 'C₂H₄ 平面' },
+  { name: '丙烯', smiles: 'CC=C', desc: 'C₃H₆' },
+  { name: '乙炔', smiles: 'C#C', desc: 'C₂H₂ 直线' },
+  { name: '苯', smiles: 'c1ccccc1', desc: 'C₆H₆ 大π键' },
+  { name: '甲苯', smiles: 'Cc1ccccc1', desc: 'C₇H₈' },
+  { name: '环己烷', smiles: 'C1CCCCC1', desc: 'C₆H₁₂' },
+  { name: '环丙烷', smiles: 'C1CC1', desc: 'C₃H₆' },
+  { name: '甲醇', smiles: 'CO', desc: 'CH₃OH' },
+  { name: '乙醇', smiles: 'CCO', desc: 'C₂H₅OH' },
+  { name: '甘油', smiles: 'OCC(O)CO', desc: '丙三醇' },
+  { name: '甲醛', smiles: 'C=O', desc: 'HCHO' },
+  { name: '乙醛', smiles: 'CC=O', desc: 'CH₃CHO' },
+  { name: '丙酮', smiles: 'CC(=O)C', desc: 'CH₃COCH₃' },
+  { name: '乙酸', smiles: 'CC(=O)O', desc: 'CH₃COOH' },
+  { name: '乙酸乙酯', smiles: 'CCOC(=O)C', desc: 'CH₃COOC₂H₅' },
+  { name: '乙胺', smiles: 'CCN', desc: 'C₂H₅NH₂' },
+  { name: '二甲醚', smiles: 'COC', desc: 'CH₃OCH₃' },
+  { name: '氯甲烷', smiles: 'CCl', desc: 'CH₃Cl' },
+  { name: '溴乙烷', smiles: 'CCBr', desc: 'C₂H₅Br' },
+  { name: '苯酚', smiles: 'Oc1ccccc1', desc: 'C₆H₅OH' },
+  { name: '苯甲酸', smiles: 'OC(=O)c1ccccc1', desc: 'C₆H₅COOH' },
+  { name: '硝基苯', smiles: '[O-][N+](=O)c1ccccc1', desc: 'C₆H₅NO₂' },
+  { name: '葡萄糖', smiles: 'OC1C(O)C(O)C(O)C(O)C1O', desc: 'C₆H₁₂O₆' },
+  { name: '氨', smiles: 'N', desc: 'NH₃ 三角锥' },
+  { name: '水', smiles: 'O', desc: 'H₂O V形' },
+  { name: '二氧化碳', smiles: 'O=C=O', desc: 'CO₂ 直线' }
+];
+let RDKitModule = null;
+let rdkitLoadPromise = null;
+function loadRDKitModule() {
+  if (RDKitModule) return Promise.resolve(RDKitModule);
+  if (rdkitLoadPromise) return rdkitLoadPromise;
+  rdkitLoadPromise = new Promise((resolve, reject) => {
+    if (typeof initRDKitModule === 'undefined') {
+      reject(new Error('RDKit 引擎未能加载（请检查网络/CDN 可用性）'));
+      return;
+    }
+    initRDKitModule().then(m => { RDKitModule = m; resolve(m); }).catch(e => reject(e));
+  });
+  return rdkitLoadPromise;
+}
+function openPhotoTo3DPanel() {
+  let overlay = document.getElementById('photo3dOverlay');
+  if (overlay) { overlay.style.display = 'flex'; return; }
+  overlay = document.createElement('div');
+  overlay.className = 'correction-modal-overlay';
+  overlay.id = 'photo3dOverlay';
+  overlay.style.zIndex = 9999;
+  const presetBtns = RDKIT_PRESETS.map(p =>
+    '<button class="preset-chip" onclick="pickRDKitPreset(\'' + p.smiles + '\',\'' + p.name + '\')">' + p.name + ' ' + p.smiles + '</button>'
+  ).join('');
+  overlay.innerHTML =
+    '<div class="correction-modal photo3d-modal">' +
+    '<h3>🖼 图片 → 生成 3D 分子</h3>' +
+    '<p style="font-size:12px; color:var(--text-muted); line-height:1.8;">先上传结构式/球棍示意图作参考（不上传也可以）。说明：纯网页无后端时无法自动识别图片里的化学结构（OCSR 为 Java 库，需服务器运行）；本功能使用 <b>RDKit-js 化学引擎</b>解析结构式（SMILES），提取原子与化学键，再由程序按杂化类型自动补氢并生成<b>标准三维构象</b>（sp³≈109°28′ / sp²≈120° / sp=180°），结果与手动绘制完全一致、可全编辑，并可放入晶胞。</p>' +
+    '<div class="photo3d-upload">' +
+    '<button class="btn btn-outline" onclick="document.getElementById(\'photo3dFileInput\').click()">📤 上传图片（仅参考）</button>' +
+    '<input type="file" id="photo3dFileInput" accept="image/*" style="display:none;" onchange="previewPhoto3DFile(this)">' +
+    '<button class="btn btn-outline" onclick="clearPhoto3DPreview()">清除图片</button>' +
+    '</div>' +
+    '<div id="photo3dPreviewWrap" style="display:none; margin:10px 0; text-align:center;"><img id="photo3dPreview" style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid #334155;"></div>' +
+    '<div class="photo3d-section"><div style="font-size:13px; font-weight:600; margin-bottom:6px;">① 从常用分子选择（高考范围）</div><div class="photo3d-presets">' + presetBtns + '</div></div>' +
+    '<div class="photo3d-section"><div style="font-size:13px; font-weight:600; margin-bottom:6px;">② 或直接输入结构简式（SMILES）</div>' +
+    '<input type="text" id="smilesInput" placeholder="例如：CCO（乙醇）、c1ccccc1（苯）、CC(=O)O（乙酸）、CC=C（丙烯）" style="width:100%; padding:8px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#e2e8f0; font-family:Consolas,monospace; font-size:13px; box-sizing:border-box;"></div>' +
+    '<div class="photo3d-section" style="display:flex; gap:10px; align-items:center; margin-top:12px;">' +
+    '<button class="btn btn-primary" onclick="generate3DFromSMILES()">⚗ 生成 3D 分子</button>' +
+    '<span id="rdkitStatus" style="font-size:12px; color:var(--text-muted);"></span></div>' +
+    '<div style="font-size:11px; color:var(--text-muted); margin-top:8px; line-height:1.7;">生成后自动进入 3D 球棍模型视图：可拖拽旋转、滚轮缩放；「返回 2D 编辑」可继续修改原子/键；选中后可在晶胞模块中放置。SMILES 无法解析时给出友好提示，不会崩溃。</div>' +
+    '<div class="correction-modal-actions"><button class="btn btn-outline" onclick="closePhotoTo3DPanel()">取消</button></div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+function closePhotoTo3DPanel() {
+  const o = document.getElementById('photo3dOverlay');
+  if (o) o.remove();
+}
+function pickRDKitPreset(smiles, name) {
+  const input = document.getElementById('smilesInput');
+  if (input) input.value = smiles;
+  const status = document.getElementById('rdkitStatus');
+  if (status) status.textContent = '已选：' + name + '（' + smiles + '）';
+}
+function previewPhoto3DFile(input) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wrap = document.getElementById('photo3dPreviewWrap');
+    const img = document.getElementById('photo3dPreview');
+    if (wrap) wrap.style.display = 'block';
+    if (img) img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  if (input) input.value = '';
+}
+function clearPhoto3DPreview() {
+  const wrap = document.getElementById('photo3dPreviewWrap');
+  if (wrap) wrap.style.display = 'none';
+  const img = document.getElementById('photo3dPreview');
+  if (img) img.src = '';
+}
+// 解析 V2000 Molfile：原子（元素+3D坐标）与键（连接+键级）
+function parseMolblock(mb) {
+  const lines = mb.split(/\r?\n/);
+  const counts = (lines[3] || '').trim().split(/\s+/);
+  const nAtoms = parseInt(counts[0]) || 0;
+  const nBonds = parseInt(counts[1]) || 0;
+  const atoms = [], bonds = [];
+  for (let i = 0; i < nAtoms; i++) {
+    const p = (lines[4 + i] || '').trim().split(/\s+/);
+    if (p.length < 4) break;
+    atoms.push({
+      x: parseFloat(p[0]) || 0,
+      y: parseFloat(p[1]) || 0,
+      z: parseFloat(p[2]) || 0,
+      element: (p[3] || 'C').replace(/[^A-Za-z]/g, '') || 'C'
+    });
+  }
+  for (let i = 0; i < nBonds; i++) {
+    const p = (lines[4 + nAtoms + i] || '').trim().split(/\s+/);
+    if (p.length < 3) break;
+    bonds.push({
+      atom1: (parseInt(p[0]) || 1) - 1,
+      atom2: (parseInt(p[1]) || 1) - 1,
+      order: Math.max(1, parseInt(p[2]) || 1)
+    });
+  }
+  return { atoms, bonds };
+}
+async function generate3DFromSMILES() {
+  const input = document.getElementById('smilesInput');
+  const smiles = (input && input.value.trim()) || '';
+  if (!smiles) { alert('请先输入结构简式（SMILES），或从上方常用分子中选择一个。'); return; }
+  const status = document.getElementById('rdkitStatus');
+  if (status) status.textContent = '⏳ 正在加载 RDKit 引擎并解析结构…';
+  try {
+    const RDKit = await loadRDKitModule();
+    if (status) status.textContent = '⏳ 解析原子与化学键…';
+    const mol = RDKit.get_mol(smiles);
+    if (!mol.is_valid()) throw new Error('SMILES 无法解析（请检查书写是否正确）');
+    mol.get_new_coords(); // 生成 2D 平面坐标（RDKit 化学拓扑布局）
+    const molblock = mol.get_molblock();
+    const parsed = parseMolblock(molblock);
+    if (parsed.atoms.length === 0) throw new Error('未解析到原子');
+    // 载入画布（2D 骨架），随后由杂化校正引擎自动补氢并生成标准 3D 构象
+    loadMoleculeFromRDKit(parsed, smiles);
+    if (status) status.textContent = '';
+    closePhotoTo3DPanel();
+    alert('✔ 已生成分子骨架：' + parsed.atoms.length + ' 个原子。\n程序将自动补氢并按杂化（sp³≈109°28′ / sp²≈120° / sp=180°）生成标准 3D 构象。\n请核对识别结果，必要时返回 2D 编辑手动调整。');
+    DrawState.view = '3d';
+    switchDrawView('3d');
+  } catch (e) {
+    if (status) status.textContent = '✖ 生成失败：' + e.message;
+    alert('生成失败：' + e.message + '\n可换用上方预设分子，或检查结构简式书写（如 CC、CCO、c1ccccc1）。');
+  }
+}
+// 载入 RDKit 解析出的分子：2D 投影到画布，3D 由杂化校正引擎生成
+function loadMoleculeFromRDKit(parsed, smiles) {
+  const w = DrawState.canvasWidth || 800, h = DrawState.canvasHeight || 600;
+  let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  parsed.atoms.forEach(a => {
+    minX = Math.min(minX, a.x); maxX = Math.max(maxX, a.x);
+    minY = Math.min(minY, a.y); maxY = Math.max(maxY, a.y);
+  });
+  const span = Math.max(maxX - minX, maxY - minY, 0.001);
+  const scale = Math.min(w, h) * 0.55 / span;
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const atoms = parsed.atoms.map((a, i) => ({
+    id: i + 1, element: a.element,
+    x: w / 2 + (a.x - cx) * scale,
+    y: h / 2 - (a.y - cy) * scale
+  }));
+  const bonds = parsed.bonds.map((b, i) => ({ id: i + 1, atom1: b.atom1 + 1, atom2: b.atom2 + 1, order: b.order }));
+  DrawState.atoms = atoms;
+  DrawState.bonds = bonds;
+  DrawState.nextAtomId = atoms.length + 1;
+  DrawState.nextBondId = bonds.length + 1;
+  DrawState.bondStartAtom = null;
+  DrawState.dragComponent = null;
+  DrawState.selectedComponent = null;
+  DrawState.snapCandidate = null;
+  DrawState.rdkitSMILES = smiles;
+  // 3D 由现有杂化校正引擎生成（走与手绘一致的管线）
+  DrawState.fromRDKit = false;
+  DrawState.useCorrected = true;
+  DrawState.correctionInfo = { correctedAtoms: [], needsCorrection: false, details: [] };
+  clearHybridizationCache();
+}
+
 function importTo3D() {
   if (DrawState.atoms.length === 0) {
     alert('画布还是空的，请先添加原子或基团拼出分子！');
@@ -7930,6 +8139,7 @@ function renderDrawPage(subId) {
                 ${isBuilder ? renderBuilderTools() : renderFreehandTools()}
               </div>
               <div style="flex:1;"></div>
+              <button class="btn-import3d secondary" onclick="openPhotoTo3DPanel()">🖼 图片→生成3D分子</button>
               <button class="btn-import3d" onclick="importTo3D()">🚀 一键生成 3D 球棍模型</button>
             </div>
             ${renderOrgCanvasArea(isBuilder ? '积木拼图：点击左侧基团放入画布 → 选择「移动」工具拖动碎片，端点靠近自动成键' : '自由手绘：点击空白处添加原子；选「键」后依次点击两个原子连线；「删除」点击原子或键移除')}
@@ -8416,6 +8626,7 @@ function handleDrawMouseDown(e) {
     if (atom) {
       // 点击已有原子：如果当前元素不同则替换
       if (atom.element !== DrawState.currentElement) {
+        markRDKitStale();
         atom.element = DrawState.currentElement;
       }
     } else {
@@ -8549,6 +8760,7 @@ function handleDrawMouseUp(e) {
       const exists = DrawState.bonds.some(b =>
         (b.atom1 === src.id && b.atom2 === tgt.id) || (b.atom1 === tgt.id && b.atom2 === src.id));
       if (!exists) {
+        markRDKitStale();
         DrawState.bonds.push({ id: DrawState.nextBondId++, atom1: src.id, atom2: tgt.id, order: 1 });
         // 提示成键
         const hint = document.getElementById('drawCanvasHint');
@@ -8562,6 +8774,7 @@ function handleDrawMouseUp(e) {
     }
     DrawState.snapCandidate = null;
   }
+  if (DrawState.isDragging) markRDKitStale();
   DrawState.isDragging = false;
   DrawState.dragAtom = null;
   DrawState.dragComponent = null;
@@ -8575,7 +8788,9 @@ function handleDrawMouseUp(e) {
 }
 
 // ===== 增删操作 =====
+function markRDKitStale() { DrawState.fromRDKit = false; }
 function addAtom(x, y) {
+  markRDKitStale();
   const atom = { id: DrawState.nextAtomId++, element: DrawState.currentElement, x, y };
   DrawState.atoms.push(atom);
   clearHybridizationCache();
@@ -8583,7 +8798,7 @@ function addAtom(x, y) {
 }
 
 function addBond(atom1Id, atom2Id) {
-
+  markRDKitStale();
   // 检查是否已存在相同的键
   const existing = DrawState.bonds.find(b =>
     (b.atom1 === atom1Id && b.atom2 === atom2Id) ||
@@ -8600,6 +8815,7 @@ function addBond(atom1Id, atom2Id) {
 
 
 function deleteAtom(atomId) {
+  markRDKitStale();
   DrawState.atoms = DrawState.atoms.filter(a => a.id !== atomId);
   DrawState.bonds = DrawState.bonds.filter(b => b.atom1 !== atomId && b.atom2 !== atomId);
   DrawState.dragComponent = null;
@@ -8609,6 +8825,7 @@ function deleteAtom(atomId) {
 }
 
 function deleteBond(bondId) {
+  markRDKitStale();
   DrawState.bonds = DrawState.bonds.filter(b => b.id !== bondId);
   DrawState.snapCandidate = null;
   clearHybridizationCache();
@@ -8616,6 +8833,7 @@ function deleteBond(bondId) {
 }
 
 function clearDrawAll() {
+  markRDKitStale();
   if (DrawState.atoms.length === 0) return;
   DrawState.atoms = [];
   DrawState.bonds = [];
@@ -9813,13 +10031,18 @@ function initDraw3DScene() {
 
   const sceneObj = { scene, camera, renderer, controls, animationId: null };
 
-  // 构建分子（根据 useCorrected 选择校正后或原始数据）
-  const fullData = convertDrawTo3D();
-  let data;
-  if (DrawState.useCorrected) {
-    data = { atoms: fullData.atoms, bonds: fullData.bonds };
+  // 构建分子：RDKit 分子直接用其精确 3D 构象；手绘分子按 useCorrected 选择校正后或原始数据
+  let fullData, data;
+  if (DrawState.fromRDKit && DrawState.current3DData) {
+    fullData = DrawState.current3DData;
+    data = { atoms: DrawState.current3DData.atoms, bonds: DrawState.current3DData.bonds };
   } else {
-    data = DrawState.raw3DData || { atoms: fullData.atoms, bonds: fullData.bonds };
+    fullData = convertDrawTo3D();
+    if (DrawState.useCorrected) {
+      data = { atoms: fullData.atoms, bonds: fullData.bonds };
+    } else {
+      data = DrawState.raw3DData || { atoms: fullData.atoms, bonds: fullData.bonds };
+    }
   }
   const group = new THREE.Group();
 
