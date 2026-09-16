@@ -682,13 +682,6 @@ a:hover { text-decoration: underline; }
 .atom-btn-N { color: #3182ce; }
 .atom-btn-F, .atom-btn-Cl, .atom-btn-Br, .atom-btn-I { color: #38a169; }
 
-.photo-toolbar {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  padding: 8px 12px; background: #0f172a; border-radius: 10px;
-  border: 1px solid #334155; margin-bottom: 8px;
-}
-.photo-toolbar .photo-label { font-size: 12px; color: #94a3b8; }
-.photo-tip { font-size: 12px; color: #94a3b8; margin: 0 0 8px; line-height: 1.7; }
 .btn-import3d.secondary { background: linear-gradient(135deg, #1e3a5f, #0f2a47); border-color: #2d5a8e; }
 .photo3d-modal { max-width: 660px; max-height: 88vh; overflow: auto; }
 .photo3d-upload { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
@@ -6768,7 +6761,6 @@ const DrawState = {
   canvasHeight: 0,
   hoverAtom: null,
   mousePos: null,              // 鼠标当前位置（用于绘制高对比指示器）
-  photo: null,                 // 结构式图片底图 { img, offsetX, offsetY, width, height, opacity, show }
   fromRDKit: false,            // 当前分子是否来自 RDKit-js（保留其精确 3D 构象坐标）
   rdkitSMILES: '',             // 对应 SMILES
   rotationAngle: 0,
@@ -7025,18 +7017,6 @@ function renderViewModeToggle() {
 // 公共：画布 + 分析面板（软提示检查 + 官能团识别）
 function renderOrgCanvasArea(hint) {
   return `
-    <div class="photo-toolbar" id="photoToolbar">
-      <button class="tool-btn" onclick="document.getElementById('photoFileInput').click()">🖼 插入结构式图片</button>
-      <input type="file" id="photoFileInput" accept="image/*" style="display:none;" onchange="importPhotoFile(this)">
-      <button class="tool-btn" onclick="togglePhoto()">底图开关</button>
-      <span class="photo-label">透明度</span>
-      <input type="range" id="photoOpacity" min="0.1" max="1" step="0.05" value="0.6" oninput="setPhotoOpacity(this.value)" style="width:80px;">
-      <button class="tool-btn" onclick="zoomPhoto(1.2)">放大</button>
-      <button class="tool-btn" onclick="zoomPhoto(1/1.2)">缩小</button>
-      <button class="tool-btn" onclick="resetPhotoFit()">适配</button>
-      <button class="tool-btn" style="background:#7f1d1d;color:#fecaca;" onclick="clearPhoto()">移除</button>
-    </div>
-    <div class="photo-tip" id="photoTip">把结构式截图拖进来，或点「🖼 插入结构式图片」：图片作为半透明底图，照着图上的原子位置点「＋原子」、连「—键」，完成后「🚀 一键生成 3D 球棍模型」。</div>
     <div class="draw-canvas-container" id="drawCanvasContainer">
       <canvas id="drawCanvas"></canvas>
       <div class="canvas-hint" id="drawCanvasHint">${hint}</div>
@@ -8575,7 +8555,6 @@ function initDrawCanvas() {
   runValenceCheck();
   renderSavedStructures();
   renderOrgAnalysis();
-  initPhotoDrop();
   // 若从2D绘图区导入，进入3D后需重建一次分析面板（3D分析面板单独渲染）
   if (DrawState.view === '3d') {
     const panel = document.getElementById('orgAnalysisPanel');
@@ -8853,87 +8832,6 @@ function clearDrawAll() {
 
 
 // ===== 2D 绘制（深色画布 + 高对比鼠标指示器） =====
-// ===== 结构式图片导入（底图参考描画，v0.23） =====
-function importPhotoFile(input) {
-  const file = input && input.files && input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      const w = DrawState.canvasWidth || 800, h = DrawState.canvasHeight || 600;
-      const maxW = w * 0.85, maxH = h * 0.85;
-      const r = Math.min(1, maxW / img.width, maxH / img.height);
-      DrawState.photo = {
-        img, width: img.width * r, height: img.height * r,
-        offsetX: (w - img.width * r) / 2, offsetY: (h - img.height * r) / 2,
-        opacity: 0.6, show: true
-      };
-      draw2DScene();
-      updatePhotoTip();
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-  if (input) input.value = '';
-}
-function togglePhoto() {
-  if (!DrawState.photo) return;
-  DrawState.photo.show = !DrawState.photo.show;
-  draw2DScene(); updatePhotoTip();
-}
-function setPhotoOpacity(v) {
-  if (!DrawState.photo) return;
-  DrawState.photo.opacity = parseFloat(v);
-  draw2DScene();
-}
-function zoomPhoto(f) {
-  if (!DrawState.photo) return;
-  const p = DrawState.photo;
-  const cx = p.offsetX + p.width / 2, cy = p.offsetY + p.height / 2;
-  p.width *= f; p.height *= f;
-  p.offsetX = cx - p.width / 2; p.offsetY = cy - p.height / 2;
-  draw2DScene();
-}
-function resetPhotoFit() {
-  if (!DrawState.photo) return;
-  const p = DrawState.photo;
-  const w = DrawState.canvasWidth || 800, h = DrawState.canvasHeight || 600;
-  const maxW = w * 0.85, maxH = h * 0.85;
-  const r = Math.min(1, maxW / p.img.width, maxH / p.img.height);
-  p.width = p.img.width * r; p.height = p.img.height * r;
-  p.offsetX = (w - p.width) / 2; p.offsetY = (h - p.height) / 2;
-  draw2DScene();
-}
-function clearPhoto() {
-  DrawState.photo = null;
-  draw2DScene(); updatePhotoTip();
-}
-function updatePhotoTip() {
-  const tip = document.getElementById('photoTip');
-  if (tip) tip.textContent = DrawState.photo
-    ? '底图已载入（半透明参考）——照着图点原子、连键，完成后点「🚀 一键生成 3D 球棍模型」；「移除」可去掉底图。'
-    : '把结构式截图拖进来，或点「🖼 插入结构式图片」：图片作为半透明底图，照着图上的原子位置点「＋原子」、连「—键」，完成后「🚀 一键生成 3D 球棍模型」。';
-}
-function initPhotoDrop() {
-  const box = document.getElementById('drawCanvasContainer');
-  if (!box) return;
-  box.ondragover = e => { e.preventDefault(); box.style.borderColor = '#63b3ed'; };
-  box.ondragleave = () => { box.style.borderColor = '#334155'; };
-  box.ondrop = e => {
-    e.preventDefault();
-    box.style.borderColor = '#334155';
-    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (file && file.type && file.type.startsWith('image/')) {
-      const input = document.getElementById('photoFileInput');
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      input.files = dt.files;
-      importPhotoFile(input);
-    }
-  };
-}
-
 function draw2DScene() {
   const ctx = DrawState.ctx;
   if (!ctx) return;
@@ -8942,23 +8840,6 @@ function draw2DScene() {
   // 深色背景
   ctx.fillStyle = '#1e293b';
   ctx.fillRect(0, 0, w, h);
-
-  // 结构式图片底图（半透明参考，画在最底层）
-  if (DrawState.photo && DrawState.photo.img && DrawState.photo.show !== false) {
-    ctx.save();
-    ctx.globalAlpha = DrawState.photo.opacity || 0.6;
-    ctx.drawImage(DrawState.photo.img, DrawState.photo.offsetX, DrawState.photo.offsetY, DrawState.photo.width, DrawState.photo.height);
-    ctx.restore();
-    ctx.strokeStyle = 'rgba(99,179,237,0.55)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([6, 4]);
-    ctx.strokeRect(DrawState.photo.offsetX, DrawState.photo.offsetY, DrawState.photo.width, DrawState.photo.height);
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(99,179,237,0.8)';
-    ctx.font = '11px "Noto Sans SC", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('底图参考', DrawState.photo.offsetX + 6, DrawState.photo.offsetY + 14);
-  }
 
   // 网格背景（半透明白，深色底上清晰可见）
   ctx.strokeStyle = 'rgba(255,255,255,0.09)';
