@@ -2783,6 +2783,7 @@ function renderCrystalFreeBuildPage() {
               <button class="viewer-btn" onclick="resetCrystalFreeView()">重置视角</button>
               <button class="viewer-btn" onclick="fbToggleSites()">点位开关</button>
               <button class="viewer-btn" onclick="fbToggleFaces()">面开关</button>
+              <button class="viewer-btn" id="fbAxesBtn" onclick="fbToggleAxes()">坐标轴</button>
               <button class="viewer-btn" onclick="fbToggleExtension()">平移延伸</button>
               <button class="viewer-btn" id="fbPerspBtn" onclick="fbTogglePerspective()">透视视角</button>
               <button class="viewer-btn" id="fbTransBtn" onclick="fbToggleTransparent()">透明内部</button>
@@ -2843,10 +2844,11 @@ function buildCrystalFreeBuild(sceneObj) {
   // XYZ 坐标轴：从晶胞一角出发，沿 -a/-b/-c 向晶胞外延伸（参数变化自动跟随）
   if (FreeBuildState.showAxes) {
     const v = fbCellVectors();
-    createAxes3D(axesGroup, {
+    // v0.30：精细坐标轴——1px 细线（与网格线同细）+ 微型箭头 + 小标签，从晶胞角向外延伸
+    fbFineAxes(axesGroup, {
       origin: fbFracToWorld([1, 1, 1]),
       axes: [[v.ax, v.ay, v.az], [v.bx, v.by, v.bz], [v.cx, v.cy, v.cz]],
-      lengths: [1.0, 1.0, 1.0]
+      lengths: [0.7, 0.7, 0.7]
     });
   }
 }
@@ -6342,6 +6344,40 @@ function createThreeScene(containerId, opts) {
 
 // ===== 晶胞 XYZ 坐标轴（带箭头与字母标签） =====
 let crystalAxesVisible = false; // 预设晶胞坐标轴开关（默认关闭，等用户确认方案后再启用）
+
+// v0.30：精细坐标轴——线细如网格线、尺寸小巧，箭头与标签都做小号
+function fbFineAxes(group, opts) {
+  const o = opts.origin || [0, 0, 0];
+  const axes = opts.axes || [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const L = opts.lengths ? opts.lengths[0] : 0.7;
+  const colors = [0xff5252, 0x43a047, 0x1e88e5]; // X红 / Y绿 / Z蓝
+  const labels = ['X', 'Y', 'Z'];
+  const up = new THREE.Vector3(0, 1, 0);
+  for (let i = 0; i < 3; i++) {
+    const d = vNorm(axes[i]);
+    const tx = o[0] + d[0] * L, ty = o[1] + d[1] * L, tz = o[2] + d[2] * L;
+    // 细线：Line 渲染为 1px，与晶胞网格线同细
+    const line = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(o[0], o[1], o[2]), new THREE.Vector3(tx, ty, tz)]),
+      new THREE.LineBasicMaterial({ color: colors[i] })
+    );
+    line.name = 'fbAxesLine';
+    group.add(line);
+    // 微型箭头（细小锥体）
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(0.026, 0.10, 10),
+      new THREE.MeshBasicMaterial({ color: colors[i] })
+    );
+    cone.position.set(tx, ty, tz);
+    cone.quaternion.setFromUnitVectors(up, new THREE.Vector3(d[0], d[1], d[2]));
+    group.add(cone);
+    // 小标签
+    const sp = makeAxesLabel(labels[i], colors[i]);
+    sp.scale.set(0.24, 0.24, 0.24);
+    sp.position.set(o[0] + d[0] * (L + 0.12), o[1] + d[1] * (L + 0.12), o[2] + d[2] * (L + 0.12));
+    group.add(sp);
+  }
+}
 
 function createAxes3D(group, opts) {
   const o = opts.origin || [0, 0, 0];
