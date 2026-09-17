@@ -2844,11 +2844,11 @@ function buildCrystalFreeBuild(sceneObj) {
   // XYZ 坐标轴：从晶胞一角出发，沿 -a/-b/-c 向晶胞外延伸（参数变化自动跟随）
   if (FreeBuildState.showAxes) {
     const v = fbCellVectors();
-    // v0.30：精细坐标轴——1px 细线（与网格线同细）+ 微型箭头 + 小标签，从晶胞角向外延伸
+    // v0.31：坐标轴标注在晶胞 (0,0,0) 角上，X→a、Y→b、Z→c（与分数坐标方向一致），极细圆柱微出晶胞
     fbFineAxes(axesGroup, {
-      origin: fbFracToWorld([1, 1, 1]),
+      origin: fbFracToWorld([0, 0, 0]),
       axes: [[v.ax, v.ay, v.az], [v.bx, v.by, v.bz], [v.cx, v.cy, v.cz]],
-      lengths: [0.7, 0.7, 0.7]
+      lengths: [1.06, 1.06, 1.06]
     });
   }
 }
@@ -6349,23 +6349,25 @@ let crystalAxesVisible = false; // 预设晶胞坐标轴开关（默认关闭，
 function fbFineAxes(group, opts) {
   const o = opts.origin || [0, 0, 0];
   const axes = opts.axes || [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-  const L = opts.lengths ? opts.lengths[0] : 0.7;
+  const L = opts.lengths ? opts.lengths[0] : 1.06;
   const colors = [0xff5252, 0x43a047, 0x1e88e5]; // X红 / Y绿 / Z蓝
   const labels = ['X', 'Y', 'Z'];
   const up = new THREE.Vector3(0, 1, 0);
   for (let i = 0; i < 3; i++) {
     const d = vNorm(axes[i]);
     const tx = o[0] + d[0] * L, ty = o[1] + d[1] * L, tz = o[2] + d[2] * L;
-    // 细线：Line 渲染为 1px，与晶胞网格线同细
-    const line = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(o[0], o[1], o[2]), new THREE.Vector3(tx, ty, tz)]),
-      new THREE.LineBasicMaterial({ color: colors[i] })
+    // 轴身：极细圆柱（半径0.012，视觉≈细线），沿晶胞坐标轴方向，不遮棱线也不闪烁
+    const cyl = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.012, L, 8),
+      new THREE.MeshBasicMaterial({ color: colors[i] })
     );
-    line.name = 'fbAxesLine';
-    group.add(line);
+    cyl.position.set(o[0] + d[0] * L / 2, o[1] + d[1] * L / 2, o[2] + d[2] * L / 2);
+    cyl.quaternion.setFromUnitVectors(up, new THREE.Vector3(d[0], d[1], d[2]));
+    cyl.name = 'fbAxesLine';
+    group.add(cyl);
     // 微型箭头（细小锥体）
     const cone = new THREE.Mesh(
-      new THREE.ConeGeometry(0.026, 0.10, 10),
+      new THREE.ConeGeometry(0.024, 0.09, 10),
       new THREE.MeshBasicMaterial({ color: colors[i] })
     );
     cone.position.set(tx, ty, tz);
