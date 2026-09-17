@@ -2551,7 +2551,8 @@ const FreeBuildState = {
   moleculeSeq: 1,
   // v0.20：多晶胞延展（超胞）——空间复制显示，副本不可编辑
   supercell: { nx: 1, ny: 1, nz: 1 },
-  insideDepth: 0.5          // 「内部任意」放置深度：0=进入面 … 1=对面（0.5=晶胞中心）
+  insideDepth: 0.5,         // 「内部任意」放置深度：0=进入面 … 1=对面（0.5=晶胞中心）
+  gridOn: false,             // 网格参考（0.25 步长格点，点击吸附放置）
 };
 
 function fbCellVectors() {
@@ -2783,6 +2784,7 @@ function renderCrystalFreeBuildPage() {
               <button class="viewer-btn" onclick="resetCrystalFreeView()">重置视角</button>
               <button class="viewer-btn" onclick="fbToggleSites()">点位开关</button>
               <button class="viewer-btn" onclick="fbToggleFaces()">面开关</button>
+              <button class="viewer-btn" id="fbGridBtn" onclick="fbToggleGrid()">网格参考</button>
               <button class="viewer-btn" onclick="fbToggleExtension()">平移延伸</button>
               <button class="viewer-btn" id="fbPerspBtn" onclick="fbTogglePerspective()">透视视角</button>
               <button class="viewer-btn" id="fbTransBtn" onclick="fbToggleTransparent()">透明内部</button>
@@ -2835,8 +2837,10 @@ function buildCrystalFreeBuild(sceneObj) {
   const bondGroup = fbGroup(sceneObj, 'fbBondGroup');
   const extGroup = fbGroup(sceneObj, 'fbExtGroup');
   const axesGroup = fbGroup(sceneObj, 'fbAxesGroup');
+  const gridGroup = fbGroup(sceneObj, 'fbGridGroup');
   fbBuildFrame(frameGroup);
-  if (FreeBuildState.showSites) fbBuildSites(siteGroup);
+  if (FreeBuildState.showSites && !FreeBuildState.gridOn) fbBuildSites(siteGroup);
+  if (FreeBuildState.gridOn) fbBuildGrid(gridGroup);
   fbBuildAtoms(atomGroup);
   fbBuildBonds(bondGroup);
   if (FreeBuildState.showExtension) fbBuildExtension(extGroup);
@@ -3007,6 +3011,33 @@ function fbBuildExtension(group) {
 }
 
 // ===== 交互 =====
+// v0.27：网格参考——0.25 步长三维格点，开启后点击放置自动吸附到最近网格点
+function fbBuildGrid(group) {
+  const step = 0.25;
+  const vals = [];
+  for (let v = 0; v <= 1 + 1e-6; v += step) vals.push(Math.min(1, v));
+  const geom = new THREE.SphereGeometry(0.03, 10, 10);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.45 });
+  vals.forEach(x => vals.forEach(y => vals.forEach(z => {
+    const m = new THREE.Mesh(geom, mat);
+    m.position.set(...fbFracToWorld([x, y, z]));
+    m.name = 'fbGrid';
+    m.userData.f = [x, y, z];
+    group.add(m);
+  })));
+}
+function fbToggleGrid() {
+  FreeBuildState.gridOn = !FreeBuildState.gridOn;
+  const btn = document.getElementById('fbGridBtn');
+  if (btn) btn.classList.toggle('active', FreeBuildState.gridOn);
+  fbRebuild();
+}
+function fbSnapGrid(frac) {
+  if (!FreeBuildState.gridOn) return frac;
+  const s = 0.25;
+  return [0, 1, 2].map(k => Math.min(1, Math.max(0, Math.round(frac[k] / s) * s)));
+}
+
 function fbHandleClick(e) {
   const sceneObj = AppState.threeScenes.crystalFree;
   if (!sceneObj) return;
@@ -3026,7 +3057,8 @@ function fbHandleClick(e) {
     const aUd = aHits[0].object.userData;
     const aIjk = aUd.ijk || [0, 0, 0];
     if (aIjk[0] !== 0 || aIjk[1] !== 0 || aIjk[2] !== 0) {
-      alert('这是延展副本原子（' + (aIjk[0]+1) + '×' + (aIjk[1]+1) + '×' + (aIjk[2]+1) + ' 号），只能看不能编辑；请编辑原始晶胞（1×1×1）');
+      if (FreeBuildState.tool === 'bond') { fbOnAtomClick(aUd.atomId); return; } // 跨晶胞成键：映射到原始晶胞原子
+      alert('这是延展副本原子（' + (aIjk[0]+1) + '×' + (aIjk[1]+1) + '×' + (aIjk[2]+1) + ' 号），只能看不能编辑；「成键」工具可跨晶胞连键');
       return;
     }
     fbOnAtomClick(aUd.atomId); return;
@@ -3072,7 +3104,7 @@ function fbHandleClick(e) {
       const faceMeshes = sceneObj.scene.getObjectByName('fbFrameGroup').children.filter(c => c.name === 'fbFace');
       const fHits = raycaster.intersectObjects(faceMeshes, false);
       for (let i = 0; i < fHits.length; i++) {
-        const frac = fbWorldToFrac([fHits[i].point.x, fHits[i].point.y, fHits[i].point.z]);
+        const frac = fbSnapGrid(fbWorldToFrac([fHits[i].point.x, fHits[i].point.y, fHits[i].point.z]));
         if (frac[0] >= -0.002 && frac[0] <= 1.002 && frac[1] >= -0.002 && frac[1] <= 1.002 && frac[2] >= -0.002 && frac[2] <= 1.002) {
           fbAddAtom(frac[0], frac[1], frac[2]);
           return;
@@ -3088,7 +3120,7 @@ function fbHandleClick(e) {
       const pIn = fHits[0].point, pOut = fHits[fHits.length - 1].point;
       const d = FreeBuildState.insideDepth == null ? 0.5 : FreeBuildState.insideDepth;
       const w = [pIn.x + (pOut.x - pIn.x) * d, pIn.y + (pOut.y - pIn.y) * d, pIn.z + (pOut.z - pIn.z) * d];
-      const frac = fbWorldToFrac(w);
+      const frac = fbSnapGrid(fbWorldToFrac(w));
       if (frac[0] >= -0.002 && frac[0] <= 1.002 && frac[1] >= -0.002 && frac[1] <= 1.002 && frac[2] >= -0.002 && frac[2] <= 1.002) {
         fbAddAtom(frac[0], frac[1], frac[2]);
       }
@@ -3128,10 +3160,11 @@ function fbOnAtomClick(atId) {
     } else if (FreeBuildState.bondFirst !== atId) {
       const dup = FreeBuildState.bonds.some(b => (b.atom1 === FreeBuildState.bondFirst && b.atom2 === atId) || (b.atom1 === atId && b.atom2 === FreeBuildState.bondFirst));
       if (!dup) FreeBuildState.bonds.push({ id: FreeBuildState.bondSeq++, atom1: FreeBuildState.bondFirst, atom2: atId });
-      FreeBuildState.bondFirst = atId;
-      FreeBuildState.selectedAtom = atId;
+      // 成键后不保持选中：清空起点与选中态，重新点两个原子即可继续成键
+      FreeBuildState.bondFirst = null;
+      FreeBuildState.selectedAtom = null;
       const hint = document.getElementById('fbBondHint');
-      if (hint) hint.textContent = '已连键，继续点击下一个原子（可连续成键）';
+      if (hint) hint.textContent = '已连键。点击两个原子可继续成键（支持跨晶胞、任意距离）';
     }
     fbRebuild(); fbRenderAtomList(); fbUpdateInfo();
   }
@@ -3382,7 +3415,7 @@ function fbSetTool(tool) {
   FreeBuildState.bondFirst = null;
   document.querySelectorAll('.fb-tool-btn[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   const hint = document.getElementById('fbBondHint');
-  if (hint) hint.textContent = tool === 'bond' ? '点击第一个原子，再点击第二个原子成键（可连续）' : tool === 'place' ? '点击点位放入原子' : tool === 'erase' ? '点击原子或键删除' : '点击原子选中/取消（可删除/移动）';
+  if (hint) hint.textContent = tool === 'bond' ? '点击第一个原子，再点击第二个原子成键（支持跨晶胞、任意距离）' : tool === 'place' ? '点击点位/网格点放入原子（开启「网格参考」自动吸附）' : tool === 'erase' ? '点击原子或键删除' : '点击原子选中/取消（可删除/移动）';
   fbUpdateInfo();
 }
 function fbSetSiteType(t) {
