@@ -2564,7 +2564,13 @@ function fbCellVectors() {
   const cx = c * cosB;
   const cy = c * (cosA - cosB * cosG) / sinG;
   const cz = Math.sqrt(Math.max(0, c * c - cx * cx - cy * cy));
-  return { ax, ay, az, bx, by, bz, cx, cy, cz };
+  // v0.32：坐标系整体绕世界 X 轴旋转 -90°（(x,y,z)→(x,z,-y)），
+  // 使默认视角（沿 a 方向正视，相机 up=Y）下：X 向前、Y 向右、Z 向上，与分数坐标方向匹配
+  return {
+    ax: ax, ay: az, az: -ay,
+    bx: bx, by: bz, bz: -by,
+    cx: cx, cy: cz, cz: -cy
+  };
 }
 // 分数坐标 → 世界坐标（晶胞居中于原点）
 function fbFracToWorld(f) {
