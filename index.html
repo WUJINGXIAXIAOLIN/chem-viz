@@ -2539,7 +2539,7 @@ const FreeBuildState = {
   atoms: [],        // { id, x, y, z(分数坐标0~1), color, radius, element }
   bonds: [],        // { id, atom1, atom2 }
   tool: 'place',    // place | select | bond | erase
-  siteType: 'vertex', // vertex | edge | face | body | any
+  siteType: 'vertex', // vertex | edge | face | body | any | inside
   element: 'Na', color: '#ab5cf2', radius: 0.18, // 原子默认半径（0.18：比0.15稍大，晶胞盒子不变）
   selectedAtom: null,
   bondFirst: null,
@@ -2550,7 +2550,8 @@ const FreeBuildState = {
   selectedMolecule: null, // 当前选中分子 id
   moleculeSeq: 1,
   // v0.20：多晶胞延展（超胞）——空间复制显示，副本不可编辑
-  supercell: { nx: 1, ny: 1, nz: 1 }
+  supercell: { nx: 1, ny: 1, nz: 1 },
+  insideDepth: 0.5          // 「内部任意」放置深度：0=进入面 … 1=对面（0.5=晶胞中心）
 };
 
 function fbCellVectors() {
@@ -2656,13 +2657,19 @@ function renderCrystalFreeBuildPage() {
           <div class="fb-section">
             <div class="fb-section-title">📌 点位类型（放置时）</div>
             <div class="fb-tool-row">
-              <button class="fb-site-btn ${FreeBuildState.siteType === 'vertex' ? 'active' : ''}" onclick="fbSetSiteType('vertex')">顶点 1/8</button>
-              <button class="fb-site-btn ${FreeBuildState.siteType === 'edge' ? 'active' : ''}" onclick="fbSetSiteType('edge')">棱心 1/4</button>
-              <button class="fb-site-btn ${FreeBuildState.siteType === 'face' ? 'active' : ''}" onclick="fbSetSiteType('face')">面心 1/2</button>
-              <button class="fb-site-btn ${FreeBuildState.siteType === 'body' ? 'active' : ''}" onclick="fbSetSiteType('body')">体心 1</button>
-              <button class="fb-site-btn ${FreeBuildState.siteType === 'any' ? 'active' : ''}" onclick="fbSetSiteType('any')">任意位置</button>
+              <button class="fb-site-btn ${FreeBuildState.siteType === 'vertex' ? 'active' : ''}" data-site="vertex" onclick="fbSetSiteType('vertex')">顶点 1/8</button>
+              <button class="fb-site-btn ${FreeBuildState.siteType === 'edge' ? 'active' : ''}" data-site="edge" onclick="fbSetSiteType('edge')">棱心 1/4</button>
+              <button class="fb-site-btn ${FreeBuildState.siteType === 'face' ? 'active' : ''}" data-site="face" onclick="fbSetSiteType('face')">面心 1/2</button>
+              <button class="fb-site-btn ${FreeBuildState.siteType === 'body' ? 'active' : ''}" data-site="body" onclick="fbSetSiteType('body')">体心 1</button>
+              <button class="fb-site-btn ${FreeBuildState.siteType === 'any' ? 'active' : ''}" data-site="any" onclick="fbSetSiteType('any')">表面任意</button>
+              <button class="fb-site-btn ${FreeBuildState.siteType === 'inside' ? 'active' : ''}" data-site="inside" onclick="fbSetSiteType('inside')">内部任意</button>
             </div>
-            <div class="fb-hint">顶点金色 · 棱心青色 · 面心蓝紫 · 体心红橙。选择「任意位置」后点击晶胞面内任意处放置。</div>
+            <div class="fb-field" id="fbInsideDepthRow" style="${FreeBuildState.siteType === 'inside' ? 'display:flex;' : 'display:none;'}">
+              <label>内部深度</label>
+              <input type="range" id="fbInsideDepth" min="0" max="1" step="0.05" value="${FreeBuildState.insideDepth}" oninput="fbSetInsideDepth(this.value)">
+              <span id="fbInsideDepthVal" style="min-width:34px;">${FreeBuildState.insideDepth.toFixed(2)}</span>
+            </div>
+            <div class="fb-hint" id="fbSiteHint">顶点金色 · 棱心青色 · 面心蓝紫 · 体心红橙。选「表面任意」点晶胞表面放置；选「内部任意」点晶胞任意处，原子按「内部深度」落在内部，可到达内部任意位置。</div>
           </div>
 
           <div class="fb-section">
@@ -3043,11 +3050,11 @@ function fbHandleClick(e) {
     }
   }
 
-  // 放置工具：点位 / 任意位置
+  // 放置工具：点位 / 任意位置 / 内部任意
   if (tool === 'place') {
     const siteMeshes = sceneObj.scene.getObjectByName('fbSiteGroup').children.filter(c => c.name === 'fbSite');
     const sHits = raycaster.intersectObjects(siteMeshes, false);
-    if (sHits.length > 0) {
+    if (FreeBuildState.siteType !== 'inside' && sHits.length > 0) {
       if (FreeBuildState.siteType === 'any') {
         const s0 = sHits[0].object.userData;
         fbAddAtom(s0.f[0], s0.f[1], s0.f[2]);
@@ -3071,6 +3078,21 @@ function fbHandleClick(e) {
           return;
         }
       }
+    }
+    // v0.26：「内部任意」放置——点击晶胞任意处，原子落在穿入面与穿出面之间，按 insideDepth 定位
+    if (FreeBuildState.siteType === 'inside') {
+      const faceMeshes = sceneObj.scene.getObjectByName('fbFrameGroup').children.filter(c => c.name === 'fbFace');
+      const fHits = raycaster.intersectObjects(faceMeshes, false);
+      if (fHits.length === 0) return;
+      fHits.sort((a, b) => a.distance - b.distance);
+      const pIn = fHits[0].point, pOut = fHits[fHits.length - 1].point;
+      const d = FreeBuildState.insideDepth == null ? 0.5 : FreeBuildState.insideDepth;
+      const w = [pIn.x + (pOut.x - pIn.x) * d, pIn.y + (pOut.y - pIn.y) * d, pIn.z + (pOut.z - pIn.z) * d];
+      const frac = fbWorldToFrac(w);
+      if (frac[0] >= -0.002 && frac[0] <= 1.002 && frac[1] >= -0.002 && frac[1] <= 1.002 && frac[2] >= -0.002 && frac[2] <= 1.002) {
+        fbAddAtom(frac[0], frac[1], frac[2]);
+      }
+      return;
     }
   }
 }
@@ -3365,7 +3387,18 @@ function fbSetTool(tool) {
 }
 function fbSetSiteType(t) {
   FreeBuildState.siteType = t;
-  document.querySelectorAll('.fb-site-btn').forEach(b => b.classList.toggle('active', b.textContent.includes(t === 'vertex' ? '顶点' : t === 'edge' ? '棱心' : t === 'face' ? '面心' : t === 'body' ? '体心' : '任意')));
+  document.querySelectorAll('.fb-site-btn').forEach(b => b.classList.toggle('active', b.dataset.site === t));
+  const row = document.getElementById('fbInsideDepthRow');
+  if (row) row.style.display = t === 'inside' ? 'flex' : 'none';
+  const hint = document.getElementById('fbSiteHint');
+  if (hint) hint.textContent = t === 'inside'
+    ? '「内部任意」：点击晶胞任意处，原子放在射线穿入面与穿出面之间，按「内部深度」定位（0=进入面、0.5=中心、1=对面），可到达晶胞内部任意位置。'
+    : '顶点金色 · 棱心青色 · 面心蓝紫 · 体心红橙。选「表面任意」点晶胞表面放置；选「内部任意」点晶胞任意处，原子按「内部深度」落在内部。';
+}
+function fbSetInsideDepth(v) {
+  FreeBuildState.insideDepth = parseFloat(v);
+  const t = document.getElementById('fbInsideDepthVal');
+  if (t) t.textContent = FreeBuildState.insideDepth.toFixed(2);
 }
 function fbSetElement(el) {
   const e = FB_ELEMENTS.find(x => x.el === el);
