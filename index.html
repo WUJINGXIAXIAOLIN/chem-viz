@@ -2552,7 +2552,8 @@ const FreeBuildState = {
   // v0.20：多晶胞延展（超胞）——空间复制显示，副本不可编辑
   supercell: { nx: 1, ny: 1, nz: 1 },
   insideDepth: 0.5,         // 「内部任意」放置深度：0=进入面 … 1=对面（0.5=晶胞中心）
-  gridOn: false,             // 网格参考（0.25 步长格点，点击吸附放置）
+  gridOn: false,             // 网格参考（点击吸附放置）
+  gridStep: 0.125,          // 网格步长（0.125 = 每轴 9 格，729 个格点）
 };
 
 function fbCellVectors() {
@@ -3013,7 +3014,7 @@ function fbBuildExtension(group) {
 // ===== 交互 =====
 // v0.27：网格参考——0.25 步长三维格点，开启后点击放置自动吸附到最近网格点
 function fbBuildGrid(group) {
-  const step = 0.25;
+  const step = FreeBuildState.gridStep || 0.125;
   const vals = [];
   for (let v = 0; v <= 1 + 1e-6; v += step) vals.push(Math.min(1, v));
   const geom = new THREE.SphereGeometry(0.03, 10, 10);
@@ -3034,7 +3035,7 @@ function fbToggleGrid() {
 }
 function fbSnapGrid(frac) {
   if (!FreeBuildState.gridOn) return frac;
-  const s = 0.25;
+  const s = FreeBuildState.gridStep || 0.125;
   return [0, 1, 2].map(k => Math.min(1, Math.max(0, Math.round(frac[k] / s) * s)));
 }
 
@@ -3415,7 +3416,7 @@ function fbSetTool(tool) {
   FreeBuildState.bondFirst = null;
   document.querySelectorAll('.fb-tool-btn[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   const hint = document.getElementById('fbBondHint');
-  if (hint) hint.textContent = tool === 'bond' ? '点击第一个原子，再点击第二个原子成键（支持跨晶胞、任意距离）' : tool === 'place' ? '点击点位/网格点放入原子（开启「网格参考」自动吸附）' : tool === 'erase' ? '点击原子或键删除' : '点击原子选中/取消（可删除/移动）';
+  if (hint) hint.textContent = tool === 'bond' ? '点击第一个原子，再点击第二个原子成键（支持跨晶胞、任意距离）' : tool === 'place' ? '点击点位/网格点放入原子（开启「网格参考」按 0.125 精度吸附）' : tool === 'erase' ? '点击原子或键删除' : '点击原子选中/取消（可删除/移动）';
   fbUpdateInfo();
 }
 function fbSetSiteType(t) {
