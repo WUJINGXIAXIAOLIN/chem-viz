@@ -1505,10 +1505,16 @@ const MODULES = [
       { id: 'nacl', name: 'NaCl 型' },
       { id: 'cscl', name: 'CsCl 型' },
       { id: 'caf2', name: 'CaF₂ 型' },
-      { id: 'diamond', name: '金刚石与SiO₂' },
+      { id: 'diamond', name: '金刚石' },
       { id: 'graphite', name: '石墨' },
       { id: 'dryice', name: '干冰（分子晶体）' },
-      { id: 'metal', name: '金属晶体（Cu/Mg/简单立方）' },
+      { id: 'metal', name: '金属晶体（Cu 型）' },
+      { id: 'bcc', name: '体心立方（Na/K/Fe 型）' },
+      { id: 'hcp', name: '六方密堆积（Mg 型）' },
+      { id: 'zns', name: 'ZnS 闪锌矿' },
+      { id: 'sio2', name: '二氧化硅 SiO₂' },
+      { id: 'p4', name: '白磷 P₄' },
+      { id: 'i2', name: '碘 I₂' },
       { id: 'calc', name: '晶胞计算辅助' },
       { id: 'freebuild', name: '自由搭建晶胞' }
     ]},
@@ -1607,7 +1613,16 @@ function buildSearchIndex() {
     { name: 'CsCl 氯化铯', route: 'crystal', sub: 'cscl' },
     { name: '金刚石', route: 'crystal', sub: 'diamond' },
     { name: '石墨', route: 'crystal', sub: 'graphite' },
-    { name: '二氧化硅 SiO₂', route: 'crystal', sub: 'diamond' },
+    { name: '二氧化硅 SiO₂', route: 'crystal', sub: 'sio2' },
+    { name: '体心立方', route: 'crystal', sub: 'bcc' },
+    { name: '铁 Fe 晶胞', route: 'crystal', sub: 'bcc' },
+    { name: '钠 Na 晶胞', route: 'crystal', sub: 'bcc' },
+    { name: '钾 K 晶胞', route: 'crystal', sub: 'bcc' },
+    { name: '六方最密堆积', route: 'crystal', sub: 'hcp' },
+    { name: '镁 Mg 晶胞', route: 'crystal', sub: 'hcp' },
+    { name: '闪锌矿 ZnS', route: 'crystal', sub: 'zns' },
+    { name: '白磷 P₄', route: 'crystal', sub: 'p4' },
+    { name: '碘 I₂', route: 'crystal', sub: 'i2' },
     { name: '干冰', route: 'crystal', sub: 'dryice' },
     { name: '钠 Na', route: 'inorganic', sub: 'na' },
     { name: '铝 Al', route: 'inorganic', sub: 'al' },
@@ -2425,10 +2440,16 @@ function renderCrystalSelectPage() {
     { id: 'nacl', icon: '🧂', name: 'NaCl 型', desc: '面心立方 · 离子晶体 · 配位数 6' },
     { id: 'cscl', icon: '⬜', name: 'CsCl 型', desc: '简单立方 · 离子晶体 · 配位数 8' },
     { id: 'caf2', icon: '💎', name: 'CaF₂ 型', desc: '面心立方 · 离子晶体 · 配位数 8/4' },
-    { id: 'diamond', icon: '💠', name: '金刚石 / SiO₂', desc: '原子晶体 · 正四面体网状结构' },
+    { id: 'diamond', icon: '💠', name: '金刚石', desc: '原子晶体 · 正四面体网状结构' },
     { id: 'graphite', icon: '⬛', name: '石墨', desc: '层状混合晶体 · 层内大π键' },
     { id: 'dryice', icon: '❄️', name: '干冰', desc: '分子晶体 · 面心立方密堆积' },
-    { id: 'metal', icon: '🔩', name: '金属晶体', desc: 'Cu 型 / Mg 型 / 简单立方' },
+    { id: 'metal', icon: '🔩', name: '金属晶体', desc: 'Cu 型面心立方 · 配位数 12' },
+    { id: 'bcc', icon: '🧊', name: '体心立方', desc: 'Na/K/Fe 型 · 金属晶体 · 配位数 8' },
+    { id: 'hcp', icon: '🔷', name: '六方密堆积', desc: 'Mg 型 · 金属晶体 · 配位数 12' },
+    { id: 'zns', icon: '✦', name: 'ZnS 闪锌矿', desc: '离子晶体 · 配位数 4:4' },
+    { id: 'sio2', icon: '⛰️', name: '二氧化硅', desc: '原子晶体 · 每个 Si 连 4 个 O' },
+    { id: 'p4', icon: '🧿', name: '白磷 P₄', desc: '分子晶体 · 正四面体 · 键角 60°' },
+    { id: 'i2', icon: '🟣', name: '碘 I₂', desc: '分子晶体 · 范德华力堆积' },
     { id: 'calc', icon: '🧮', name: '晶胞计算辅助', desc: '均摊法 · 配位数 · 密度计算' },
     { id: 'freebuild', icon: '🛠️', name: '自由搭建晶胞', desc: '任意原子 · 成键 · 超胞 · 导入分子' }
   ];
@@ -2454,10 +2475,16 @@ function renderCrystalPage(subId) {
     nacl: { name: 'NaCl 型', type: '离子晶体', coord: 'Na⁺:6, Cl⁻:6', desc: '面心立方，Na⁺和Cl⁻交替排列，每个离子配位数为6' },
     cscl: { name: 'CsCl 型', type: '离子晶体', coord: 'Cs⁺:8, Cl⁻:8', desc: '简单立方，Cs⁺在体心，Cl⁻在顶点，配位数为8' },
     caf2: { name: 'CaF₂ 型', type: '离子晶体', coord: 'Ca²⁺:8, F⁻:4', desc: '面心立方，Ca²⁺在面心立方位置，F⁻在四面体空隙' },
-    diamond: { name: '金刚石 / SiO₂', type: '原子晶体', coord: 'C:4, Si:4, O:2', desc: '金刚石：每个C与4个C成键，正四面体网状结构。SiO₂：Si在金刚石位置，O在Si-Si键中间' },
+    diamond: { name: '金刚石', type: '原子晶体', coord: 'C:4', desc: '每个C与4个C以共价键成正四面体网状结构，Z=8。熔沸点高、硬度大' },
     graphite: { name: '石墨', type: '混合晶体', coord: 'C:3（层内）', desc: '层状结构，层内sp²杂化形成平面六边形，层间范德华力，含大π键可导电' },
     dryice: { name: '干冰', type: '分子晶体', coord: 'CO₂:12', desc: '面心立方密堆积，CO₂分子位于顶点和面心，分子间范德华力' },
-    metal: { name: '金属晶体', type: '金属晶体', coord: 'Cu:12, Mg:12, 简单立方:6', desc: 'Cu型（面心立方最密堆积A1）、Mg型（六方最密堆积A3）、简单立方（Po）' },
+    metal: { name: '金属晶体', type: '金属晶体', coord: 'Cu:12', desc: 'Cu型（面心立方最密堆积A1）：顶点+面心，Z=4，配位数12。Mg型、体心立方见独立晶胞' },
+    bcc: { name: '体心立方（Na/K/Fe 型）', type: '金属晶体', coord: '配位数 8', desc: '体心立方堆积（A2型）：顶点8个+体心1个，Z=8×1/8+1=2。Na、K、Fe、Cr、W、Mo等金属属此类，配位数8，空间利用率68%' },
+    hcp: { name: '六方最密堆积（Mg 型）', type: '金属晶体', coord: '配位数 12', desc: '六方最密堆积（A3型）：12个角上原子×1/6 + 2个面心×1/2 + 3个体内 = Z=6。Mg、Zn、Ti等金属属此类，配位数12，空间利用率74%' },
+    zns: { name: 'ZnS 闪锌矿', type: '离子晶体', coord: 'Zn²⁺:4, S²⁻:4', desc: '闪锌矿：S²⁻面心立方，Zn²⁺占4个四面体空隙，配位数4:4，Z=8（S²⁻ 4 + Zn²⁺ 4）' },
+    sio2: { name: '二氧化硅 SiO₂', type: '原子晶体', coord: 'Si:4, O:2', desc: 'Si在金刚石位置，每个O连接2个Si。每晶胞8个Si + 16个O（Z=24），Si:O=1:2，SiO₂中不存在单个SiO₂分子' },
+    p4: { name: '白磷 P₄', type: '分子晶体', coord: '键角 60°', desc: '白磷分子P₄为正四面体（键角60°，P-P键有张力、易断），分子间靠范德华力。这里展示晶胞内的一个P₄分子' },
+    i2: { name: '碘 I₂', type: '分子晶体', coord: '分子间范德华力', desc: 'I₂为双原子非极性分子，分子晶体（简化示意：顶点与面心放置I₂分子），靠范德华力堆积，易升华' },
     calc: { name: '晶胞计算辅助', type: '—', coord: '—', desc: '均摊法：顶点1/8、棱心1/4、面心1/2、体心1。密度ρ = ZM/(Nₐ·a³)' }
   };
 
@@ -2472,6 +2499,7 @@ function renderCrystalPage(subId) {
           <button class="viewer-btn" onclick="resetCrystalView()">重置视角</button>
           <button class="viewer-btn" id="crystalPerspBtn" onclick="toggleCrystalPerspective()">透视视角</button>
           <button class="viewer-btn" id="crystalTransBtn" onclick="toggleCrystalTransparent()">透明内部</button>
+          <button class="viewer-btn" id="crystalShareBtn" onclick="toggleCrystalShare()">均摊切面</button>
         </div>
         <div class="viewer-info" id="crystalInfo">默认正交正视 · 拖拽旋转 · 滚轮缩放</div>
       </div>
@@ -2551,7 +2579,12 @@ const FreeBuildState = {
   moleculeSeq: 1,
   // v0.20：多晶胞延展（超胞）——空间复制显示，副本不可编辑
   supercell: { nx: 1, ny: 1, nz: 1 },
-  insideDepth: 0.5          // 「内部任意」放置深度：0=进入面 … 1=对面（0.5=晶胞中心）
+  insideDepth: 0.5,          // 「内部任意」放置深度：0=进入面 … 1=对面（0.5=晶胞中心）
+  // v0.34：重叠显示相邻晶胞（3×3×3 邻域叠加，看共享原子 → 理解均摊法）
+  overlap: false,
+  // v0.34：晶胞切面（enabled 开关 / axis 切向 x=a、y=b、z=c / t 分数位置 0~1）
+  // v0.35：mode = 'free' 自由切面（任意位置一刀切）| 'share' 均摊切面（在共享位置把原子切成份额球）
+  slice: { enabled: false, axis: 'z', t: 0.5, mode: 'free' }
 };
 
 function fbCellVectors() {
@@ -2748,6 +2781,47 @@ function renderCrystalFreeBuildPage() {
           </div>
 
           <div class="fb-section">
+            <div class="fb-section-title">🔄 重叠显示相邻晶胞（看共享原子）</div>
+            <div class="fb-tool-row">
+              <button class="fb-tool-btn" style="background:#eef2ff;color:#3730a3;" onclick="fbToggleOverlap()" id="fbOverlapPanelBtn">开启重叠显示</button>
+            </div>
+            <div class="fb-hint">把周围 3×3×3 的 26 个相邻晶胞以半透明线框 + 半透明原子叠加显示：同一个顶点原子同时被 8 个晶胞共享（每胞 1/8）、棱上原子被 4 个共享（1/4）、面心原子被 2 个共享（1/2）、体内原子独享（1）。开启后旋转观察，直观理解均摊法。</div>
+            <div class="fb-result" id="fbOverlapResult" style="margin-top:6px;">点击「开启重叠显示」查看共享效果。</div>
+          </div>
+
+          <div class="fb-section">
+            <div class="fb-section-title">✂️ 均摊切面·共享位置（一键看份额球）</div>
+            <div class="fb-tool-row">
+              <button class="fb-tool-btn" style="background:#eef2ff;color:#3730a3;" onclick="fbToggleShareSlice()" id="fbShareSliceBtn">开启均摊切面</button>
+            </div>
+            <div class="fb-hint">和预设晶胞「均摊切面」一致：一键把每个原子切成「它属于本晶胞的份额」——顶点 1/8 球、棱上 1/4 球、面心 1/2 球、体内完整球，每个切面处画半透明截面圆。份额加起来 = 本晶胞实际粒子数 Z。</div>
+            <div class="fb-result" id="fbShareSliceResult" style="margin-top:6px;">点击「开启均摊切面」，把原子按共享份额切开。</div>
+          </div>
+
+          <div class="fb-section">
+            <div class="fb-section-title">🔪 晶胞切面（数截面粒子）</div>
+            <div class="fb-tool-row">
+              <button class="fb-site-btn fb-slice-mode-btn ${FreeBuildState.slice.mode === 'free' ? 'active' : ''}" data-sm="free" onclick="fbSetSliceMode('free')">自由切面</button>
+              <button class="fb-site-btn fb-slice-mode-btn ${FreeBuildState.slice.mode === 'share' ? 'active' : ''}" data-sm="share" onclick="fbSetSliceMode('share')">均摊切面·共享位置</button>
+            </div>
+            <div class="fb-tool-row" id="fbSliceAxisRow">
+              <button class="fb-site-btn fb-slice-axis-btn ${FreeBuildState.slice.axis === 'x' ? 'active' : ''}" data-sa="x" onclick="fbSetSliceAxis('x')">沿a切 (YZ面)</button>
+              <button class="fb-site-btn fb-slice-axis-btn ${FreeBuildState.slice.axis === 'y' ? 'active' : ''}" data-sa="y" onclick="fbSetSliceAxis('y')">沿b切 (XZ面)</button>
+              <button class="fb-site-btn fb-slice-axis-btn ${FreeBuildState.slice.axis === 'z' ? 'active' : ''}" data-sa="z" onclick="fbSetSliceAxis('z')">沿c切 (XY面)</button>
+            </div>
+            <div class="fb-field" id="fbSliceTRow">
+              <label>切面位置</label>
+              <input type="range" id="fbSliceT" min="0" max="1" step="0.02" value="${FreeBuildState.slice.t}" oninput="fbSetSliceT(this.value)">
+              <span id="fbSliceTVal" style="min-width:34px;">${FreeBuildState.slice.t.toFixed(2)}</span>
+            </div>
+            <div class="fb-tool-row" style="margin-top:8px;">
+              <button class="fb-tool-btn" style="background:#eef2ff;color:#3730a3;" onclick="fbToggleSlice()" id="fbSlicePanelBtn">开启切面</button>
+            </div>
+            <div class="fb-hint">半透明黄色平面即切面：被切到的原子「切半」露出内部截面（亮色圆盘 = 该原子在本截面上的剖面）。拖到 0.5（正中）最直观：原子心恰在切面上的原子露出最大整圆。</div>
+            <div class="fb-result" id="fbSliceResult" style="margin-top:6px;">开启切面后自动统计：该截面切到哪些原子、份额如何分配。</div>
+          </div>
+
+          <div class="fb-section">
             <div class="fb-section-title">🧪 原子列表（点击选中）</div>
             <div class="fb-atom-list" id="fbAtomList"></div>
             <div class="fb-tool-row" style="margin-top:8px;">
@@ -2793,6 +2867,8 @@ function renderCrystalFreeBuildPage() {
               <button class="viewer-btn" onclick="fbToggleExtension()">平移延伸</button>
               <button class="viewer-btn" id="fbPerspBtn" onclick="fbTogglePerspective()">透视视角</button>
               <button class="viewer-btn" id="fbTransBtn" onclick="fbToggleTransparent()">透明内部</button>
+              <button class="viewer-btn" id="fbOverlapBtn" onclick="fbToggleOverlap()">重叠晶胞</button>
+              <button class="viewer-btn" id="fbSliceBtn" onclick="fbToggleSlice()">切面</button>
             </div>
             <div class="viewer-info" id="crystalFreeInfo">默认正交正视 · 拖拽旋转 · 滚轮缩放</div>
           </div>
@@ -2842,11 +2918,19 @@ function buildCrystalFreeBuild(sceneObj) {
   const bondGroup = fbGroup(sceneObj, 'fbBondGroup');
   const extGroup = fbGroup(sceneObj, 'fbExtGroup');
   const axesGroup = fbGroup(sceneObj, 'fbAxesGroup');
+  const overlapGroup = fbGroup(sceneObj, 'fbOverlapGroup');
+  const sliceGroup = fbGroup(sceneObj, 'fbSliceGroup');
   fbBuildFrame(frameGroup);
   if (FreeBuildState.showSites) fbBuildSites(siteGroup);
   fbBuildAtoms(atomGroup);
   fbBuildBonds(bondGroup);
   if (FreeBuildState.showExtension) fbBuildExtension(extGroup);
+  if (FreeBuildState.overlap) fbBuildOverlap(overlapGroup);
+  if (FreeBuildState.slice.enabled) {
+    // v0.35：均摊切面把份额球放进 atomGroup（保持原子可选中/可编辑），截面圆盘放 sliceGroup
+    if (FreeBuildState.slice.mode === 'share') fbBuildShareSlice(atomGroup, sliceGroup);
+    else fbBuildSlice(sliceGroup);
+  }
   // XYZ 坐标轴：从晶胞一角出发，沿 -a/-b/-c 向晶胞外延伸（参数变化自动跟随）
   if (FreeBuildState.showAxes) {
     const v = fbCellVectors();
@@ -2921,21 +3005,31 @@ function fbBuildSites(group) {
 function fbBuildAtoms(group) {
   const sc = FreeBuildState.supercell;
   const selMol = FreeBuildState.selectedMolecule != null ? FreeBuildState.molecules.find(m => m.id === FreeBuildState.selectedMolecule) : null;
+  // v0.34：切面开启时原子按与切面的距离处理——完全在裁掉侧(负法线侧)的隐藏，被切到的切半
+  const sliceOn = FreeBuildState.slice.enabled;
+  // v0.35：均摊切面模式——完整球由 fbBuildShareSlice 以「份额球」替代渲染（份额球同样进 fbAtomGroup，保持选择/删除/移动可用）
+  if (sliceOn && FreeBuildState.slice.mode === 'share') return;
+  const sGeo = sliceOn ? fbSliceGeom() : null;
   FreeBuildState.atoms.forEach(at => {
     const isMolAtom = selMol ? selMol.atomIds.includes(at.id) : false;
     for (let ix = 0; ix < sc.nx; ix++)
     for (let iy = 0; iy < sc.ny; iy++)
     for (let iz = 0; iz < sc.nz; iz++) {
+      const w = fbFracToWorld([at.x + ix, at.y + iy, at.z + iz]);
+      let sDist = 0;
+      if (sliceOn) sDist = vDot([w[0] - sGeo.origin[0], w[1] - sGeo.origin[1], w[2] - sGeo.origin[2]], sGeo.n);
+      if (sliceOn && sDist < -at.radius) continue; // 切面另一侧（剖面拿掉的部分）整颗隐藏
+      const isCut = sliceOn && Math.abs(sDist) <= at.radius;
       const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(at.radius, 24, 24),
         new THREE.MeshPhongMaterial({
           color: at.color, shininess: 60,
           transparent: fbTransparent,
           opacity: fbTransparent ? 0.45 : 1,
-          depthWrite: !fbTransparent
+          depthWrite: !fbTransparent,
+          clippingPlanes: isCut ? [sGeo.plane] : []
         })
       );
-      const w = fbFracToWorld([at.x + ix, at.y + iy, at.z + iz]);
       mesh.position.set(...w);
       mesh.name = 'fbAtom';
       mesh.userData.atomId = at.id;
@@ -3012,6 +3106,320 @@ function fbBuildExtension(group) {
       group.add(mesh);
     });
   });
+}
+
+// ===== v0.34：重叠显示相邻晶胞（3×3×3 邻域叠加，看共享原子 → 理解均摊法） =====
+function fbBuildOverlap(group) {
+  const v = fbCellVectors();
+  const edges = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+  // 26 个相邻晶胞的半透明线框（跳过主晶胞 0,0,0）
+  for (let ix = -1; ix <= 1; ix++)
+  for (let iy = -1; iy <= 1; iy++)
+  for (let iz = -1; iz <= 1; iz++) {
+    if (ix === 0 && iy === 0 && iz === 0) continue;
+    const corners = [];
+    for (let i = 0; i < 8; i++) corners.push(fbFracToWorld([(i & 1) ? 1 : 0 + ix, (i & 2) ? 1 : 0 + iy, (i & 4) ? 1 : 0 + iz]));
+    const pts = [];
+    edges.forEach(e2 => { pts.push(new THREE.Vector3(...corners[e2[0]]), new THREE.Vector3(...corners[e2[1]])); });
+    const lines = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color: 0x9aa7b5, transparent: true, opacity: 0.3 })
+    );
+    lines.name = 'fbOverlapFrame';
+    group.add(lines);
+  }
+  // 相邻晶胞中的共享原子（半透明小球，颜色同主晶胞原子）——与主晶胞实体原子对比，看清顶点/棱/面原子被几个晶胞共享
+  FreeBuildState.atoms.forEach(at => {
+    for (let ix = -1; ix <= 1; ix++)
+    for (let iy = -1; iy <= 1; iy++)
+    for (let iz = -1; iz <= 1; iz++) {
+      if (ix === 0 && iy === 0 && iz === 0) continue;
+      const w = fbFracToWorld([at.x + ix, at.y + iy, at.z + iz]);
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(at.radius, 16, 16),
+        new THREE.MeshBasicMaterial({ color: at.color, transparent: true, opacity: 0.32, depthWrite: false })
+      );
+      mesh.position.set(...w);
+      mesh.name = 'fbOverlapAtom';
+      group.add(mesh);
+    }
+  });
+}
+
+// ===== v0.34：晶胞切面 =====
+function fbSliceGeom() {
+  // 切面法线沿选定晶胞轴方向，位置 = 分数坐标 t；返回 { n, origin, plane, t }
+  const v = fbCellVectors();
+  const aVec = FreeBuildState.slice.axis === 'x' ? [v.ax, v.ay, v.az] : FreeBuildState.slice.axis === 'y' ? [v.bx, v.by, v.bz] : [v.cx, v.cy, v.cz];
+  const n = vNorm(aVec);
+  const t = Math.max(0, Math.min(1, FreeBuildState.slice.t));
+  const origin = fbFracToWorld([
+    FreeBuildState.slice.axis === 'x' ? t : 0,
+    FreeBuildState.slice.axis === 'y' ? t : 0,
+    FreeBuildState.slice.axis === 'z' ? t : 0
+  ]);
+  // 保留 n·(p−origin) ≥ 0 一侧（法线正方向侧），裁掉另一侧
+  const plane = new THREE.Plane(new THREE.Vector3(n[0], n[1], n[2]), -vDot(n, origin));
+  return { n, origin, plane, t };
+}
+function fbSliceCorners() {
+  const t = Math.max(0, Math.min(1, FreeBuildState.slice.t));
+  if (FreeBuildState.slice.axis === 'x') return [[t,0,0],[t,1,0],[t,1,1],[t,0,1]];
+  if (FreeBuildState.slice.axis === 'y') return [[0,t,0],[1,t,0],[1,t,1],[0,t,1]];
+  return [[0,0,t],[1,0,t],[1,1,t],[0,1,t]];
+}
+function fbBuildSlice(group) {
+  if (FreeBuildState.slice.mode === 'share') return; // share 模式由 fbBuildShareSlice 处理
+  const { n, origin } = fbSliceGeom();
+  const up = new THREE.Vector3(n[0], n[1], n[2]);
+  // 1) 半透明切面平面 + 亮色边框
+  const corners = fbSliceCorners().map(f => fbFracToWorld(f));
+  const quad = new THREE.BufferGeometry();
+  quad.setAttribute('position', new THREE.Float32BufferAttribute([
+    ...corners[0], ...corners[1], ...corners[2],
+    ...corners[0], ...corners[2], ...corners[3]
+  ], 3));
+  const planeMesh = new THREE.Mesh(quad, new THREE.MeshBasicMaterial({
+    color: 0xffd54a, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false
+  }));
+  planeMesh.name = 'fbSlicePlane';
+  group.add(planeMesh);
+  const edgePts = [];
+  [[0,1],[1,2],[2,3],[3,0]].forEach(e => {
+    edgePts.push(new THREE.Vector3(...corners[e[0]]), new THREE.Vector3(...corners[e[1]]));
+  });
+  const edge = new THREE.LineSegments(
+    new THREE.BufferGeometry().setFromPoints(edgePts),
+    new THREE.LineBasicMaterial({ color: 0xffd54a, transparent: true, opacity: 0.85 })
+  );
+  edge.name = 'fbSliceEdge';
+  group.add(edge);
+
+  // 2) 被切原子 → 截面圆盘（亮色实心圆 + 金色描边）；原子切半部分由 fbBuildAtoms 的 clippingPlanes 完成
+  FreeBuildState.atoms.forEach(at => {
+    const w = fbFracToWorld([at.x, at.y, at.z]);
+    const d = vDot([w[0] - origin[0], w[1] - origin[1], w[2] - origin[2]], n);
+    if (Math.abs(d) >= at.radius) return;
+    const rSec = Math.sqrt(Math.max(0, at.radius * at.radius - d * d));
+    const cw = [w[0] + n[0] * d, w[1] + n[1] * d, w[2] + n[2] * d];
+    const disc = new THREE.Mesh(
+      new THREE.CircleGeometry(Math.max(0.002, rSec), 32),
+      new THREE.MeshBasicMaterial({ color: at.color, side: THREE.DoubleSide })
+    );
+    disc.position.set(cw[0] + n[0] * 0.006, cw[1] + n[1] * 0.006, cw[2] + n[2] * 0.006);
+    disc.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), up);
+    disc.name = 'fbSliceDisc';
+    disc.userData.atomId = at.id;
+    group.add(disc);
+    const rim = new THREE.Mesh(
+      new THREE.RingGeometry(Math.max(0.001, rSec - 0.005), rSec, 32),
+      new THREE.MeshBasicMaterial({ color: 0xffd54a, side: THREE.DoubleSide })
+    );
+    rim.position.copy(disc.position);
+    rim.quaternion.copy(disc.quaternion);
+    rim.name = 'fbSliceRim';
+    group.add(rim);
+  });
+}
+
+// ===== v0.35：均摊切面（共享位置切分）——把每个原子切成「它属于本晶胞的那一份」 =====
+function fbShareDirs(at) {
+  // 判定原子被哪些相邻晶胞共享：分数坐标分量在边界(≈0或≈1)则沿该轴向晶胞内部裁一刀
+  const v = fbCellVectors();
+  const e = d => d === 'x' ? [v.ax, v.ay, v.az] : d === 'y' ? [v.bx, v.by, v.bz] : [v.cx, v.cy, v.cz];
+  const dirs = [];
+  const push = (d, inward) => {
+    const vec = e(d);
+    dirs.push(inward ? vNorm(vec) : vNorm([-vec[0], -vec[1], -vec[2]]));
+  };
+  if (at.x < 1e-3) push('x', true); else if (at.x > 1 - 1e-3) push('x', false);
+  if (at.y < 1e-3) push('y', true); else if (at.y > 1 - 1e-3) push('y', false);
+  if (at.z < 1e-3) push('z', true); else if (at.z > 1 - 1e-3) push('z', false);
+  return dirs;
+}
+function fbBuildShareSlice(atomGroup, sliceGroup) {
+  const up = new THREE.Vector3(0, 0, 1);
+  FreeBuildState.atoms.forEach(at => {
+    const cw = fbFracToWorld([at.x, at.y, at.z]);
+    const dirs = fbShareDirs(at);
+    const planes = dirs.map(d => new THREE.Plane(new THREE.Vector3(d[0], d[1], d[2]), -vDot(d, cw)));
+    // 份额球（裁剪到只保留本晶胞部分）——进 atomGroup 保持可交互
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(at.radius, 32, 32),
+      new THREE.MeshPhongMaterial({
+        color: at.color, shininess: 60,
+        transparent: fbTransparent, opacity: fbTransparent ? 0.45 : 1,
+        depthWrite: !fbTransparent,
+        clippingPlanes: planes
+      })
+    );
+    mesh.position.set(...cw);
+    mesh.name = 'fbAtom';
+    mesh.userData.atomId = at.id;
+    mesh.userData.ijk = [0, 0, 0];
+    atomGroup.add(mesh);
+    // 选中高亮环
+    if (at.id === FreeBuildState.selectedAtom) {
+      const ring = new THREE.Mesh(
+        new THREE.SphereGeometry(at.radius + 0.045, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0x4fd1c5, transparent: true, opacity: 0.55, depthWrite: false })
+      );
+      ring.position.copy(mesh.position);
+      ring.name = 'fbSelRing';
+      atomGroup.add(ring);
+    }
+    // 每个共享位置画半透明截面圆（表示「切」的位置）——进 sliceGroup
+    dirs.forEach(d => {
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(at.radius, 32),
+        new THREE.MeshBasicMaterial({ color: at.color, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false })
+      );
+      disc.position.set(cw[0] + d[0] * 0.005, cw[1] + d[1] * 0.005, cw[2] + d[2] * 0.005);
+      disc.quaternion.setFromUnitVectors(up, new THREE.Vector3(d[0], d[1], d[2]));
+      disc.name = 'fbShareDisc';
+      disc.userData.atomId = at.id;
+      sliceGroup.add(disc);
+    });
+  });
+}
+function fbSetSliceMode(m) {
+  FreeBuildState.slice.mode = m;
+  document.querySelectorAll('.fb-slice-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.sm === m));
+  // 均摊切面不需要方向与位置（自动在共享位置切）
+  const axisRow = document.getElementById('fbSliceAxisRow');
+  const tRow = document.getElementById('fbSliceTRow');
+  if (axisRow) axisRow.style.display = m === 'share' ? 'none' : 'flex';
+  if (tRow) tRow.style.display = m === 'share' ? 'none' : 'flex';
+  // v0.36：同步「一键均摊切面」按钮状态
+  const sBtn = document.getElementById('fbShareSliceBtn');
+  if (sBtn) sBtn.textContent = (FreeBuildState.slice.enabled && m === 'share') ? '关闭均摊切面' : '开启均摊切面';
+  const sRes = document.getElementById('fbShareSliceResult');
+  if (sRes) {
+    if (m === 'share' && FreeBuildState.slice.enabled) fbShareSliceInfo(sRes);
+    else sRes.innerHTML = '点击「开启均摊切面」，把原子按共享份额切开。';
+  }
+  fbRebuild();
+  fbSliceInfo();
+}
+function fbToggleShareSlice() {
+  const on = !(FreeBuildState.slice.enabled && FreeBuildState.slice.mode === 'share');
+  FreeBuildState.slice.enabled = on;
+  FreeBuildState.slice.mode = on ? 'share' : 'free';
+  // 同步切面面板的模式按钮高亮与方向/位置行
+  document.querySelectorAll('.fb-slice-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.sm === FreeBuildState.slice.mode));
+  const axisRow = document.getElementById('fbSliceAxisRow');
+  const tRow = document.getElementById('fbSliceTRow');
+  if (axisRow) axisRow.style.display = on ? 'none' : 'flex';
+  if (tRow) tRow.style.display = on ? 'none' : 'flex';
+  // 同步各按钮文本
+  const btn = document.getElementById('fbShareSliceBtn');
+  if (btn) btn.textContent = on ? '关闭均摊切面' : '开启均摊切面';
+  const b2 = document.getElementById('fbSlicePanelBtn');
+  if (b2) b2.textContent = on ? '切面已开启（均摊）' : '开启切面';
+  const b1 = document.getElementById('fbSliceBtn');
+  if (b1) b1.classList.toggle('active', on);
+  // 统计显示（rebuild 会自动刷新 fbSliceResult，这里负责独立结果区）
+  const sRes = document.getElementById('fbShareSliceResult');
+  if (sRes) {
+    if (on) fbShareSliceInfo(sRes);
+    else sRes.innerHTML = '点击「开启均摊切面」，把原子按共享份额切开。';
+  }
+  fbRebuild();
+}
+function fbShareSliceInfo(out) {
+  if (FreeBuildState.atoms.length === 0) { out.innerHTML = '暂无原子，先放几个原子再看均摊切面。'; return; }
+  const counts = {}, rows = [];
+  FreeBuildState.atoms.forEach(at => {
+    const share = fbShareOf(at);
+    const key = at.element || '原子';
+    counts[key] = (counts[key] || 0) + share;
+    rows.push({ el: key, id: at.id, share });
+  });
+  const keys = Object.keys(counts);
+  const ints = keys.map(k => Math.round(counts[k] * 8));
+  const gcd = ints.reduce((a, b) => { let x = Math.abs(a), y = Math.abs(b); while (y) { [x, y] = [y, x % y]; } return x; }, ints[0]) || 1;
+  const ratio = ints.map(v => v / gcd);
+  const Z = keys.reduce((sum, k) => sum + counts[k], 0);
+  let html = '<strong>均摊切面（在每个共享位置把原子切开）</strong><br>';
+  rows.forEach(r => {
+    const st = r.share === 1 ? '1（体内·完整球）' : r.share === 0.5 ? '1/2（面心·半球）' : r.share === 0.25 ? '1/4（棱上·1/4球）' : '1/8（顶点·1/8球）';
+    html += r.el + '#' + r.id + ' → ' + st + '<br>';
+  });
+  html += '<br><strong>本晶胞实际粒子数 Z：</strong>' + keys.map((k, i) => k + ': ' + (Math.round(counts[k] * 8) / 8)).join('，') + '（合计 ' + (Math.round(Z * 100) / 100) + ' 个）';
+  html += '<br><strong>最简整数比：</strong>' + keys.map((k, i) => k + ' : ' + ratio[i]).join('　');
+  html += '<br><strong>教学要点：</strong>顶点原子被 8 个晶胞共享、棱上 4 个、面心 2 个——你现在看到的份额球，就是它实际属于这一个晶胞的部分；把所有份额加起来 = 晶胞真实含有的粒子数 Z。';
+  out.innerHTML = html;
+}
+function fbToggleOverlap() {
+  FreeBuildState.overlap = !FreeBuildState.overlap;
+  const b1 = document.getElementById('fbOverlapBtn'), b2 = document.getElementById('fbOverlapPanelBtn');
+  if (b1) b1.classList.toggle('active', FreeBuildState.overlap);
+  if (b2) b2.textContent = FreeBuildState.overlap ? '关闭重叠显示' : '开启重叠显示';
+  const out = document.getElementById('fbOverlapResult');
+  if (out) out.innerHTML = FreeBuildState.overlap
+    ? '重叠显示中：26 个相邻晶胞半透明叠加。<strong>顶点原子被 8 个晶胞共享(1/8) · 棱上 4 个(1/4) · 面心 2 个(1/2) · 体内独享(1)</strong>。旋转查看同一原子周围的重叠晶胞。'
+    : '点击「开启重叠显示」查看共享效果。';
+  fbRebuild();
+}
+function fbToggleSlice() {
+  FreeBuildState.slice.enabled = !FreeBuildState.slice.enabled;
+  const b1 = document.getElementById('fbSliceBtn'), b2 = document.getElementById('fbSlicePanelBtn');
+  if (b1) b1.classList.toggle('active', FreeBuildState.slice.enabled);
+  if (b2) b2.textContent = FreeBuildState.slice.enabled ? '关闭切面' : '开启切面';
+  // v0.36：均摊切面模式下，同步一键按钮与独立结果区
+  const sBtn = document.getElementById('fbShareSliceBtn');
+  if (sBtn && FreeBuildState.slice.mode === 'share') {
+    sBtn.textContent = FreeBuildState.slice.enabled ? '关闭均摊切面' : '开启均摊切面';
+    const sRes = document.getElementById('fbShareSliceResult');
+    if (sRes) {
+      if (FreeBuildState.slice.enabled) fbShareSliceInfo(sRes);
+      else sRes.innerHTML = '点击「开启均摊切面」，把原子按共享份额切开。';
+    }
+  }
+  fbRebuild();
+  fbSliceInfo();
+}
+function fbSetSliceAxis(ax) {
+  FreeBuildState.slice.axis = ax;
+  document.querySelectorAll('.fb-slice-axis-btn').forEach(b => b.classList.toggle('active', b.dataset.sa === ax));
+  fbRebuild();
+  fbSliceInfo();
+}
+function fbSetSliceT(val) {
+  FreeBuildState.slice.t = parseFloat(val);
+  const t = document.getElementById('fbSliceTVal');
+  if (t) t.textContent = FreeBuildState.slice.t.toFixed(2);
+  fbRebuild();
+  fbSliceInfo();
+}
+function fbSliceInfo() {
+  const out = document.getElementById('fbSliceResult');
+  if (!out) return;
+  if (!FreeBuildState.slice.enabled) { out.innerHTML = '开启切面后自动统计：该截面切到哪些原子、份额如何分配。'; return; }
+  if (FreeBuildState.slice.mode === 'share') { fbShareSliceInfo(out); return; }
+  if (FreeBuildState.atoms.length === 0) { out.innerHTML = '暂无原子，先放几个原子再看切面。'; return; }
+  const { n, origin, t } = fbSliceGeom();
+  const axisName = { x: 'a', y: 'b', z: 'c' }[FreeBuildState.slice.axis];
+  const rows = [];
+  FreeBuildState.atoms.forEach(at => {
+    const w = fbFracToWorld([at.x, at.y, at.z]);
+    const d = vDot([w[0] - origin[0], w[1] - origin[1], w[2] - origin[2]], n);
+    if (Math.abs(d) >= at.radius) return;
+    const rSec = Math.sqrt(Math.max(0, at.radius * at.radius - d * d));
+    const share = fbShareOf(at);
+    const shareTxt = share === 1 ? '体内(1)' : share === 0.5 ? '面心(1/2)' : share === 0.25 ? '棱上(1/4)' : '顶点(1/8)';
+    rows.push({ el: at.element || '原子', id: at.id, shareTxt, share, d, rSec });
+  });
+  rows.sort((a, b) => b.share - a.share);
+  let html = '<strong>切面统计（沿' + axisName + '轴，分数位置 t=' + t.toFixed(2) + ' 剖开）</strong><br>';
+  if (!rows.length) html += '该位置没有切到任何原子——把滑块移到原子所在位置试试。';
+  rows.forEach(r => {
+    html += r.el + '#' + r.id + '：截面圆半径 ' + r.rSec.toFixed(3) + '（原子心距切面 ' + Math.abs(r.d).toFixed(3) + '），属' + r.shareTxt
+      + ' → 切面上露出' + (Math.abs(r.d) < 0.004 ? '最大整圆' : (r.share < 1 ? '部分圆（其余份额在相邻晶胞）' : '圆')) + '<br>';
+  });
+  html += '<br><strong>教学要点：</strong>切面经过的原子截面越多、圆越大，说明该位置粒子越密集；'
+    + '原子心恰在切面上时截面最大。顶点原子处于 8 个晶胞交界，若被切到，你在切面上看到的只是它归属本晶胞的 1/8 份。';
+  out.innerHTML = html;
 }
 
 // ===== 交互 =====
@@ -6298,6 +6706,8 @@ function createThreeScene(containerId, opts) {
   renderer.setSize(width, height);
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.outputEncoding = THREE.sRGBEncoding;
+  // v0.34：启用材质级裁剪（localClipping），供「晶胞切面」把原子切半露出截面；未设 clippingPlanes 的对象不受任何影响
+  renderer.localClippingEnabled = true;
   // 清理旧 canvas，避免多次重建累积覆盖（视觉错乱根因）
   container.querySelectorAll('canvas').forEach(c => c.remove());
   container.appendChild(renderer.domElement);
@@ -6442,6 +6852,8 @@ function makeAxesLabel(text, colorHex) {
 // 晶胞渲染开关：默认正交实遮挡；透视 / 透明内部为手动勾选
 let crystalPerspective = false;  // 透视投影开关（默认正交）
 let crystalTransparent = false;  // 透明显示内部原子开关（默认实遮挡）
+let crystalShareMode = false;    // v0.35：预设晶胞「均摊切面」开关（在共享位置把原子切成份额球）
+let crystalShareInfo = '';       // v0.35：均摊切面统计文本
 let fbPerspective = false;       // 自由搭建透视开关
 let fbTransparent = false;       // 自由搭建透明开关
 
@@ -6455,6 +6867,12 @@ function toggleCrystalTransparent() {
   crystalTransparent = !crystalTransparent;
   const btn = document.getElementById('crystalTransBtn');
   if (btn) btn.classList.toggle('active', crystalTransparent);
+  if (AppState.threeScenes.crystal) initCrystalScene();
+}
+function toggleCrystalShare() {
+  crystalShareMode = !crystalShareMode;
+  const btn = document.getElementById('crystalShareBtn');
+  if (btn) btn.classList.toggle('active', crystalShareMode);
   if (AppState.threeScenes.crystal) initCrystalScene();
 }
 function fbTogglePerspective() {
@@ -6634,6 +7052,24 @@ function buildMolecule(scene, molData, model) {
   scene.add(group);
 }
 
+function buildHexPrism(group, r, h, color) {
+  // 正六棱柱线框（hcp 六方密堆积晶胞边框）
+  const pts = [];
+  for (let k = 0; k < 6; k++) {
+    const ang = k * Math.PI / 3;
+    pts.push([r * Math.cos(ang), h / 2, r * Math.sin(ang)]);
+    pts.push([r * Math.cos(ang), -h / 2, r * Math.sin(ang)]);
+  }
+  const verts = [];
+  for (let k = 0; k < 6; k++) verts.push(...pts[k], ...pts[(k + 1) % 6]);          // 顶面 6 边
+  for (let k = 0; k < 6; k++) verts.push(...pts[k + 6], ...pts[((k + 1) % 6) + 6]); // 底面 6 边
+  for (let k = 0; k < 6; k++) verts.push(...pts[k], ...pts[k + 6]);                 // 6 条竖棱
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.5 });
+  group.add(new THREE.LineSegments(geo, mat));
+}
+
 function createBond(group, pos1, pos2, order) {
   const p1 = new THREE.Vector3(pos1[0], pos1[1], pos1[2]);
   const p2 = new THREE.Vector3(pos2[0], pos2[1], pos2[2]);
@@ -6690,7 +7126,7 @@ function initCrystalScene() {
   buildCrystal(sceneObj.scene, sub);
 
   const info = document.getElementById('crystalInfo');
-  if (info) info.textContent = `晶胞类型：${sub} | 拖拽旋转 · 滚轮缩放`;
+  if (info) info.textContent = crystalShareMode ? (crystalShareInfo || '均摊切面') : `晶胞类型：${sub} | 拖拽旋转 · 滚轮缩放`;
 }
 
 function buildCrystal(scene, type) {
@@ -6700,23 +7136,75 @@ function buildCrystal(scene, type) {
   const edgeGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(3, 3, 3));
   const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x666666, transparent: true, opacity: 0.5 });
   const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-  group.add(edges);
+  if (type !== 'hcp') group.add(edges); // v0.37：hcp 六方密堆积用六方柱线框，不用立方框
 
   const a = 1.5; // 半边长
+  const shareAtoms = []; // v0.35：均摊切面——记录每个原子的世界坐标与颜色
 
   // 辅助函数：创建原子球
-  function makeAtom(x, y, z, color, radius, label) {
+  // v0.37：shareType 支持 'hcpCorner'/'hcpFace'/'hcpBody'（六方密堆积份额）与 'base'（按分子位判定份额，如 I₂）；
+  //        shareBase 为分子位坐标（i2 用：I 原子偏移 0.2，但共享判定用分子中心位置）
+  function makeAtom(x, y, z, color, radius, label, shareType, shareBase) {
     const geometry = new THREE.SphereGeometry(radius, 24, 24);
-    // 默认实遮挡（depthTest 开启，后面原子完全被挡）；勾选「透明内部」后半透明
-    const material = new THREE.MeshPhongMaterial({
-      color, shininess: 60,
-      transparent: crystalTransparent,
-      opacity: crystalTransparent ? 0.45 : 1,
-      depthWrite: !crystalTransparent
-    });
-    const sphere = new THREE.Mesh(geometry, material);
-    sphere.position.set(x, y, z);
-    group.add(sphere);
+    // v0.35：均摊切面模式——把原子按「它属于本晶胞的份额」切开（顶点1/8球、棱上1/4球、面心1/2球、体内完整球）
+    if (crystalShareMode) {
+      let dirs = [];
+      let useBase = false;
+      const b = shareBase || [x, y, z];
+      if (shareType === 'hcpCorner') {
+        // 六方柱顶点：被 6 个晶胞绕 c 轴共享（1/6）→ 两个 60° 扇形边界平面 + 一个水平平面
+        const theta = Math.atan2(z, x);
+        const half = Math.PI / 6;
+        const b1 = theta + half, b2 = theta - half;
+        dirs = [[Math.sin(b1), 0, -Math.cos(b1)], [-Math.sin(b2), 0, Math.cos(b2)], [0, y > 0 ? 1 : -1, 0]];
+      } else if (shareType === 'hcpFace') {
+        dirs = [[0, y > 0 ? 1 : -1, 0]]; // 上下底面心：半球
+      } else if (shareType === 'hcpBody') {
+        dirs = [];                        // 体内：完整球
+      } else {
+        const fc = [(b[0] / a + 1) / 2, (b[1] / a + 1) / 2, (b[2] / a + 1) / 2];
+        if (fc[0] < 1e-3) dirs.push([1, 0, 0]); else if (fc[0] > 1 - 1e-3) dirs.push([-1, 0, 0]);
+        if (fc[1] < 1e-3) dirs.push([0, 1, 0]); else if (fc[1] > 1 - 1e-3) dirs.push([0, -1, 0]);
+        if (fc[2] < 1e-3) dirs.push([0, 0, 1]); else if (fc[2] > 1 - 1e-3) dirs.push([0, 0, -1]);
+        useBase = shareType === 'base';
+      }
+      // 平面基准点：普通原子用球心；base 模式（I₂ 分子位）用分子中心，保证切在共享边界上
+      const bp = useBase ? b : [x, y, z];
+      const planes = dirs.map(d => new THREE.Plane(new THREE.Vector3(d[0], d[1], d[2]), -(d[0] * bp[0] + d[1] * bp[1] + d[2] * bp[2])));
+      const mat = new THREE.MeshPhongMaterial({
+        color, shininess: 60,
+        transparent: crystalTransparent,
+        opacity: crystalTransparent ? 0.45 : 1,
+        depthWrite: !crystalTransparent,
+        clippingPlanes: planes
+      });
+      const sphere = new THREE.Mesh(geometry, mat);
+      sphere.position.set(x, y, z);
+      group.add(sphere);
+      // 每个共享位置画半透明截面圆（表示该原子被切开的份额面）
+      const up = new THREE.Vector3(0, 0, 1);
+      dirs.forEach(d => {
+        const disc = new THREE.Mesh(
+          new THREE.CircleGeometry(radius, 32),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false })
+        );
+        disc.position.set(bp[0] + d[0] * 0.004, bp[1] + d[1] * 0.004, bp[2] + d[2] * 0.004);
+        disc.quaternion.setFromUnitVectors(up, new THREE.Vector3(d[0], d[1], d[2]));
+        group.add(disc);
+      });
+    } else {
+      // 默认实遮挡（depthTest 开启，后面原子完全被挡）；勾选「透明内部」后半透明
+      const material = new THREE.MeshPhongMaterial({
+        color, shininess: 60,
+        transparent: crystalTransparent,
+        opacity: crystalTransparent ? 0.45 : 1,
+        depthWrite: !crystalTransparent
+      });
+      const sphere = new THREE.Mesh(geometry, material);
+      sphere.position.set(x, y, z);
+      group.add(sphere);
+    }
+    shareAtoms.push({ x, y, z, color, radius, shareType, shareBase });
 
     if (crystalDisplayMode === 'labels' && label) {
       // 标签用小 sprite（简化：用不同颜色小球标注位置类型）
@@ -6787,6 +7275,77 @@ function buildCrystal(scene, type) {
       });
       break;
     }
+    case 'bcc': {
+      // 体心立方（A2型）：Na、K、Fe、Cr、W、Mo 等金属
+      const mColor = 0xc8a24a;
+      [[-a,-a,-a],[a,-a,-a],[-a,a,-a],[-a,-a,a],[a,a,-a],[a,-a,a],[-a,a,a],[a,a,a]].forEach(p => makeAtom(...p, mColor, 0.36));
+      makeAtom(0, 0, 0, mColor, 0.42);
+      break;
+    }
+    case 'hcp': {
+      // 六方最密堆积（A3型）：Mg、Zn、Ti 等——六方柱晶胞，Z = 12×1/6 + 2×1/2 + 3×1 = 6
+      const mgColor = 0x7fb3e0;
+      const r = 1.2, h = 2.4;
+      for (let k = 0; k < 6; k++) {
+        const ang = k * Math.PI / 3;
+        const x = r * Math.cos(ang), z = r * Math.sin(ang);
+        makeAtom(x, h / 2, z, mgColor, 0.36, null, 'hcpCorner');
+        makeAtom(x, -h / 2, z, mgColor, 0.36, null, 'hcpCorner');
+      }
+      makeAtom(0, h / 2, 0, mgColor, 0.38, null, 'hcpFace');
+      makeAtom(0, -h / 2, 0, mgColor, 0.38, null, 'hcpFace');
+      for (let k = 0; k < 3; k++) {
+        const ang = Math.PI / 6 + k * 2 * Math.PI / 3;
+        makeAtom(r * 2 / 3 * Math.cos(ang), 0, r * 2 / 3 * Math.sin(ang), mgColor, 0.38, null, 'hcpBody');
+      }
+      buildHexPrism(group, r, h, 0x666666);
+      break;
+    }
+    case 'zns': {
+      // 闪锌矿 ZnS：S²⁻ 面心立方，Zn²⁺ 占 4 个四面体空隙
+      const sColor = 0xffd54a, znColor = 0x8f40d4;
+      [[-a,-a,-a],[a,-a,-a],[-a,a,-a],[-a,-a,a],[a,a,-a],[a,-a,a],[-a,a,a],[a,a,a]].forEach(p => makeAtom(...p, sColor, 0.36));
+      [[0,0,-a],[0,0,a],[0,-a,0],[0,a,0],[-a,0,0],[a,0,0]].forEach(p => makeAtom(...p, sColor, 0.36));
+      [[-a/2,-a/2,-a/2],[a/2,a/2,-a/2],[a/2,-a/2,a/2],[-a/2,a/2,a/2]].forEach(p => makeAtom(...p, znColor, 0.28));
+      break;
+    }
+    case 'sio2': {
+      // 二氧化硅：Si 在金刚石位置，O 在每个 Si-Si 键中点
+      const siColor = 0x9aa5b1, oColor = 0xff0d0d;
+      const siPos = [
+        [-a,-a,-a],[a,-a,-a],[-a,a,-a],[-a,-a,a],[a,a,-a],[a,-a,a],[-a,a,a],[a,a,a],
+        [0,0,-a],[0,0,a],[0,-a,0],[0,a,0],[-a,0,0],[a,0,0],
+        [-a/2,-a/2,-a/2],[a/2,a/2,-a/2],[a/2,-a/2,a/2],[-a/2,a/2,a/2]
+      ];
+      siPos.forEach(p => makeAtom(p[0], p[1], p[2], siColor, 0.24));
+      const dTarget = Math.sqrt(3) * a / 2; // 金刚石最近邻距离
+      for (let i = 0; i < siPos.length; i++) for (let j = i + 1; j < siPos.length; j++) {
+        const dx = siPos[i][0] - siPos[j][0], dy = siPos[i][1] - siPos[j][1], dz = siPos[i][2] - siPos[j][2];
+        if (Math.abs(Math.sqrt(dx * dx + dy * dy + dz * dz) - dTarget) < 0.05) {
+          makeAtom((siPos[i][0] + siPos[j][0]) / 2, (siPos[i][1] + siPos[j][1]) / 2, (siPos[i][2] + siPos[j][2]) / 2, oColor, 0.15);
+        }
+      }
+      break;
+    }
+    case 'p4': {
+      // 白磷 P₄：正四面体分子（键角 60°），分子晶体，这里展示晶胞内的一个 P₄ 分子
+      const pColor = 0xffe08a;
+      const s = 0.62;
+      const ps = [[s,s,s],[-s,-s,s],[-s,s,-s],[s,-s,-s]];
+      ps.forEach(p => makeAtom(p[0], p[1], p[2], pColor, 0.34));
+      for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) createBond(group, ps[i], ps[j], 1);
+      break;
+    }
+    case 'i2': {
+      // 碘 I₂：分子晶体（简化：顶点与面心放 I₂ 哑铃分子，面心正交示意）
+      const iColor = 0x9d5fd3;
+      const positions = [[-a,-a,-a],[a,-a,-a],[-a,a,-a],[-a,-a,a],[a,a,-a],[a,-a,a],[-a,a,a],[a,a,a],[0,0,-a],[0,0,a],[0,-a,0],[0,a,0],[-a,0,0],[a,0,0]];
+      positions.forEach(p => {
+        makeAtom(p[0], p[1] - 0.2, p[2], iColor, 0.18, null, 'base', p);
+        makeAtom(p[0], p[1] + 0.2, p[2], iColor, 0.18, null, 'base', p);
+      });
+      break;
+    }
     case 'metal': {
       // Cu型 面心立方
       const cuColor = 0xc88033;
@@ -6809,9 +7368,33 @@ function buildCrystal(scene, type) {
       axes: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
       lengths: [1.0, 1.0, 1.0]
     });
-    scene.add(axGroup);
   }
 
+  // v0.35：均摊切面模式——统计份额分布与 Z（本晶胞实际粒子数）
+  // v0.37：支持 hcp（六方柱顶点 1/6）与 i2（按分子位 shareBase 判定份额）
+  if (crystalShareMode && shareAtoms.length) {
+    const shares = { '1/8': 0, '1/4': 0, '1/2': 0, '1': 0, '1/6': 0 };
+    shareAtoms.forEach(at => {
+      if (at.shareType === 'hcpCorner') { shares['1/6']++; return; }
+      if (at.shareType === 'hcpFace') { shares['1/2']++; return; }
+      if (at.shareType === 'hcpBody') { shares['1']++; return; }
+      const b = at.shareBase || [at.x, at.y, at.z];
+      const fc = [(b[0] / a + 1) / 2, (b[1] / a + 1) / 2, (b[2] / a + 1) / 2];
+      let n = 0;
+      if (fc[0] < 1e-3 || fc[0] > 1 - 1e-3) n++;
+      if (fc[1] < 1e-3 || fc[1] > 1 - 1e-3) n++;
+      if (fc[2] < 1e-3 || fc[2] > 1 - 1e-3) n++;
+      shares[n === 3 ? '1/8' : n === 2 ? '1/4' : n === 1 ? '1/2' : '1']++;
+    });
+    const Z = shares['1/6'] / 6 + shares['1/8'] / 8 + shares['1/4'] / 4 + shares['1/2'] / 2 + shares['1'];
+    const parts = [];
+    if (shares['1/6']) parts.push('角上 ' + shares['1/6'] + '×1/6');
+    if (shares['1/8']) parts.push('顶点 ' + shares['1/8'] + '×1/8');
+    if (shares['1/4']) parts.push('棱上 ' + shares['1/4'] + '×1/4');
+    if (shares['1/2']) parts.push('面心 ' + shares['1/2'] + '×1/2');
+    if (shares['1']) parts.push('体内 ' + shares['1'] + '×1');
+    crystalShareInfo = '均摊切面：' + parts.join(' + ') + ' → 本晶胞实际粒子数 Z = ' + (Math.round(Z * 100) / 100);
+  }
   scene.add(group);
 }
 
