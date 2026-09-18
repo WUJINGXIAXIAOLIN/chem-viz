@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://wujingxiaxiaolin.github.io/chem-viz/sitemap.xml
