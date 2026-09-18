@@ -661,7 +661,7 @@ a:hover { text-decoration: underline; }
 ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
 
-/* ===== 自由绘图模块 ===== */
+/* ===== 自由绘制3D模型模块 ===== */
 .draw-workspace {
   display: grid;
   grid-template-columns: 200px 1fr;
@@ -1567,6 +1567,26 @@ const MODULES = [
       { id: 'trend', name: '同周期/同主族递变' },
       { id: 'flame', name: '焰色反应' }
     ]},
+  { id: 'draw', name: '自由绘制3D模型', icon: '✏', color: 'mod-organic',
+
+    desc: '积木拼图 + 自由手绘两种方式绘制有机结构，一键切换结构式/键线式/结构简式，自动补氢并生成满足化学结构的3D球棍模型',
+    subPages: [
+      { id: 'editor', name: '结构编辑器' },
+      { id: 'rotation', name: '单双键旋转演示' },
+      { id: 'presets', name: '预设结构库' }
+    ]},
+
+  { id: 'principle', name: '化学反应原理', icon: '⇌', color: 'mod-principle',
+    desc: '有效碰撞、活化能、化学平衡移动、弱电解质电离、原电池与电解池',
+    subPages: [
+      { id: 'collision', name: '有效碰撞与活化能' },
+      { id: 'rate', name: '反应速率影响因素' },
+      { id: 'equilibrium', name: '化学平衡移动' },
+      { id: 'electrolyte', name: '弱电解质电离' },
+      { id: 'hydrolysis', name: '盐类水解' },
+      { id: 'galvanic', name: '原电池' },
+      { id: 'electrolysis', name: '电解池' }
+    ]},
   { id: 'organic', name: '有机化学', icon: '⬡', color: 'mod-organic',
     desc: '官能团识别、同分异构体、反应机理动画、加聚缩聚与手性碳',
     subPages: [
@@ -1591,17 +1611,6 @@ const MODULES = [
       { id: 'c', name: '碳硅及其化合物' },
       { id: 'redox', name: '氧化还原与离子反应' }
     ]},
-  { id: 'principle', name: '化学反应原理', icon: '⇌', color: 'mod-principle',
-    desc: '有效碰撞、活化能、化学平衡移动、弱电解质电离、原电池与电解池',
-    subPages: [
-      { id: 'collision', name: '有效碰撞与活化能' },
-      { id: 'rate', name: '反应速率影响因素' },
-      { id: 'equilibrium', name: '化学平衡移动' },
-      { id: 'electrolyte', name: '弱电解质电离' },
-      { id: 'hydrolysis', name: '盐类水解' },
-      { id: 'galvanic', name: '原电池' },
-      { id: 'electrolysis', name: '电解池' }
-    ]},
   { id: 'experiment', name: '虚拟实验演示', icon: '⚗', color: 'mod-experiment',
     desc: '高中重点实验原理可视化，操作要点、易错点与误区提示',
     subPages: [
@@ -1619,16 +1628,7 @@ const MODULES = [
       { id: 'exam-points', name: '高频考点速查' },
       { id: 'mistakes', name: '易错点汇总' },
       { id: 'search', name: '综合检索' }
-    ]},
-    { id: 'draw', name: '自由绘图', icon: '✏', color: 'mod-organic',
-
-    desc: '积木拼图 + 自由手绘两种方式绘制有机结构，一键切换结构式/键线式/结构简式，自动补氢并生成满足化学结构的3D球棍模型',
-    subPages: [
-      { id: 'editor', name: '结构编辑器' },
-      { id: 'rotation', name: '单双键旋转演示' },
-      { id: 'presets', name: '预设结构库' }
-    ]}
-];
+    ]},];
 
 // ===== 构建搜索索引 =====
 function buildSearchIndex() {
@@ -2030,17 +2030,17 @@ function renderMyDrawPage() {
         <button class="btn" onclick="setMoleculeModel('spacefill')">比例模型</button>
         <button class="btn" onclick="resetMoleculeView()">重置视角</button>
         <button class="btn btn-primary" onclick="refreshDrawImport()">⟳ 刷新导入当前绘制分子</button>
-        <button class="btn" onclick="navigate('draw', 'editor')">✏ 去自由绘图绘制</button>
+        <button class="btn" onclick="navigate('draw', 'editor')">✏ 去自由绘制3D模型绘制</button>
       </div>
       <div class="viewer-3d" id="moleculeViewer">
         <div class="viewer-info" id="moleculeInfo">拖拽旋转 · 滚轮缩放 · 当前导入：<span id="drawImportCount">—</span></div>
       </div>
       <div class="tip-box" style="margin-top:12px;">
-        <strong>使用方法</strong>：① 先到「自由绘图」画出分子（2D 画原子、连键，含双键/三键）；② 回到本页自动导入，或点「刷新导入」；
+        <strong>使用方法</strong>：① 先到「自由绘制3D模型」画出分子（2D 画原子、连键，含双键/三键）；② 回到本页自动导入，或点「刷新导入」；
         <br>③ 导入的是<b>补氢 + 按杂化校正后</b>的完整 3D 球棍模型（sp³ 正四面体 / sp² 平面三角 / sp 直线）；④ 之后可切换球棍/比例模型、旋转缩放观察。
       </div>
       <div class="tip-box warn" style="margin-top:8px;">
-        <strong>提示</strong>：导入内容与「自由绘图」中的 3D 预览完全一致；若画布为空，请先绘制分子。
+        <strong>提示</strong>：导入内容与「自由绘制3D模型」中的 3D 预览完全一致；若画布为空，请先绘制分子。
       </div>
     </div>
   `;
@@ -2615,7 +2615,7 @@ const FreeBuildState = {
   bondFirst: null,
   showSites: true, showFaces: true, showExtension: false, showAxes: false,
   atomSeq: 1, bondSeq: 1,
-  // v0.19：从自由绘图导入的完整分子
+  // v0.19：从自由绘制3D模型导入的完整分子
   molecules: [],          // { id, atomIds:[], bondIds:[], scale:1 }
   selectedMolecule: null, // 当前选中分子 id
   moleculeSeq: 1,
@@ -2781,8 +2781,8 @@ function renderCrystalFreeBuildPage() {
           </div>
 
           <div class="fb-section">
-            <div class="fb-section-title">🧬 从自由绘图导入分子</div>
-            <div class="fb-field"><label>自由绘图分子</label><span id="fbMolInfo" style="color:#4fd1c5;">检测中…</span></div>
+            <div class="fb-section-title">🧬 从自由绘制3D模型导入分子</div>
+            <div class="fb-field"><label>自由绘制3D模型分子</label><span id="fbMolInfo" style="color:#4fd1c5;">检测中…</span></div>
             <div class="fb-hint">分子以完整3D结构导入：全部原子+化学键、自动补氢+杂化校正；内部键长/键角/相对位置不变，只整体平移，不打散。</div>
             <div class="fb-tool-row">
               <div class="fb-field" style="margin:0;"><label>质心x</label><input type="number" id="fbMolX" step="0.01" value="0.5" style="width:60px;"></div>
@@ -3688,7 +3688,7 @@ function fbScaleMolecule(val) {
   fbRebuild(); fbUpdateMoleculePanel();
 }
 
-// ===== 从自由绘图导入完整分子到晶胞（v0.19） =====
+// ===== 从自由绘制3D模型导入完整分子到晶胞（v0.19） =====
 function fbReadDrawMoleculeData() {
   try {
     if (!DrawState || !DrawState.atoms || DrawState.atoms.length === 0) return null;
@@ -3715,7 +3715,7 @@ function fbUpdateMoleculePanel() {
   const info = document.getElementById('fbMolInfo');
   if (info) {
     const d = fbReadDrawMoleculeData();
-    info.textContent = d ? `自由绘图：${d.atoms.length} 原子 / ${d.bonds.length} 键（就绪）` : '未检测到（请先在自由绘图画好分子）';
+    info.textContent = d ? `自由绘制3D模型：${d.atoms.length} 原子 / ${d.bonds.length} 键（就绪）` : '未检测到（请先在自由绘制3D模型画好分子）';
   }
   const sel = document.getElementById('fbMolSel');
   if (!sel) return;
@@ -3734,7 +3734,7 @@ function fbUpdateMoleculePanel() {
 }
 function fbPlaceDrawMolecule(asMolecule) {
   const d = fbReadDrawMoleculeData();
-  if (!d) { alert('请先在自由绘图模块画好一个分子'); return; }
+  if (!d) { alert('请先在自由绘制3D模型模块画好一个分子'); return; }
   const fx = parseFloat(document.getElementById('fbMolX').value);
   const fy = parseFloat(document.getElementById('fbMolY').value);
   const fz = parseFloat(document.getElementById('fbMolZ').value);
@@ -6977,7 +6977,7 @@ function initMoleculeScene() {
       buildMolecule(sceneObj.scene, MOLECULE_DATA['CH₄'], currentMoleculeModel);
       if (cnt) cnt.textContent = '画布为空（示例 CH₄）';
     }
-    if (info) info.innerHTML = '拖拽旋转 · 滚轮缩放 · 导入自「自由绘图」' + (md ? ' · <b style="color:#4fd1c5">' + md.atoms.length + ' 原子 / ' + md.bonds.length + ' 键</b>' : '');
+    if (info) info.innerHTML = '拖拽旋转 · 滚轮缩放 · 导入自「自由绘制3D模型」' + (md ? ' · <b style="color:#4fd1c5">' + md.atoms.length + ' 原子 / ' + md.bonds.length + ' 键</b>' : '');
     return;
   }
 
@@ -10061,7 +10061,7 @@ function complete3DStructure() {
 }
 
 // 2D骨架 → 完整3D数据（补氢 + 可选构型校正）
-// ===== 从自由绘图导入分子到查看器 =====
+// ===== 从自由绘制3D模型导入分子到查看器 =====
 function readDrawMoleculeForViewer() {
   if (!DrawState.atoms || DrawState.atoms.length === 0) return null;
   try {
@@ -11253,7 +11253,7 @@ function sendToMoleculeViewer() {
 
   // 延迟提示
   setTimeout(() => {
-    alert('结构已传递到分子查看器！在分子查看器中可查看预设分子的详细信息。\n\n（自定义结构的3D渲染请使用"自由绘图"模块的3D视图，功能更完整。）');
+    alert('结构已传递到分子查看器！在分子查看器中可查看预设分子的详细信息。\n\n（自定义结构的3D渲染请使用"自由绘制3D模型"模块的3D视图，功能更完整。）');
   }, 300);
 }
 
