@@ -10045,11 +10045,21 @@ function initDraw3DScene() {
   });
 
   const bondMeshes = [];
+  // v0.33：芳香环内键统一按芳香键渲染（单键样式+紫色），不再显示单双交替结构；大π键由中央圆环+Π₆⁶表示
+  const aromBondKey = new Set();
+  aromaticRings.forEach(ring => {
+    ring.forEach((id, i) => {
+      const nid = ring[(i + 1) % ring.length];
+      aromBondKey.add(Math.min(id, nid) + ':' + Math.max(id, nid));
+    });
+  });
   data.bonds.forEach(bond => {
     const a1 = data.atoms.find(a => a.id === bond.atom1);
     const a2 = data.atoms.find(a => a.id === bond.atom2);
     if (!a1 || !a2) return;
-    const ms = create3DBond(group, a1, a2, bond.order);
+    const key = Math.min(bond.atom1, bond.atom2) + ':' + Math.max(bond.atom1, bond.atom2);
+    const isArom = aromBondKey.has(key);
+    const ms = create3DBond(group, a1, a2, isArom ? 1 : bond.order, isArom ? 0x9f7aea : null);
     if (ms) ms.forEach(m => bondMeshes.push(m));
   });
 
@@ -10218,10 +10228,21 @@ function detectAromaticRings() {
             return a && a.element === 'C';
           });
           if (allCarbon) {
-            // 检查是否已存在相同的环
-            const ringKey = [...path].sort().join(',');
-            if (!rings.some(r => [...r].sort().join(',') === ringKey)) {
-              rings.push([...path]);
+            // v0.33：苯环成键校验——环内恰有 3 个双键且两两不相邻（凯库勒式交替结构），
+            // 排除环己烷（全单键）、环己二烯（双键相邻）等非芳香环
+            const ringOrders = path.map((id, i) => {
+              const nid = path[(i + 1) % path.length];
+              const bd = DrawState.bonds.find(b => (b.atom1 === id && b.atom2 === nid) || (b.atom1 === nid && b.atom2 === id));
+              return bd ? bd.order : 0;
+            });
+            const dbl = ringOrders.filter(o => o === 2).length;
+            const hasAdjacentDbl = ringOrders.some((o, i) => o === 2 && ringOrders[(i + 1) % ringOrders.length] === 2);
+            if (dbl === 3 && !hasAdjacentDbl) {
+              // 检查是否已存在相同的环
+              const ringKey = [...path].sort().join(',');
+              if (!rings.some(r => [...r].sort().join(',') === ringKey)) {
+                rings.push([...path]);
+              }
             }
           }
         }
@@ -10249,7 +10270,7 @@ function detectAromaticRings() {
 }
 
 // v0.8：键用单位圆柱 + scale 缩放——调节粗细时只改 scale，无需重建场景（拖动滑块实时生效）
-function create3DBond(group, a1, a2, order) {
+function create3DBond(group, a1, a2, order, color) {
   const p1 = new THREE.Vector3(a1.x, a1.y, a1.z);
   const p2 = new THREE.Vector3(a2.x, a2.y, a2.z);
   const dir = new THREE.Vector3().subVectors(p2, p1);
@@ -10266,7 +10287,7 @@ function create3DBond(group, a1, a2, order) {
   const meshes = [];
   offsets.forEach(off => {
     const geo = new THREE.CylinderGeometry(0.5, 0.5, 1, 20);
-    const mat = new THREE.MeshPhongMaterial({ color: 0xb8c0cc, shininess: 80, specular: 0x556677 });
+    const mat = new THREE.MeshPhongMaterial({ color: color || 0xb8c0cc, shininess: 80, specular: 0x556677 });
     const cyl = new THREE.Mesh(geo, mat);
     cyl.scale.set(2 * r, len, 2 * r);
     cyl.position.copy(mid).add(perp.clone().multiplyScalar(off));
